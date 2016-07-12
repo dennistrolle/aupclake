@@ -881,35 +881,35 @@
             & tPResusDiat - tPSetDiat + tPResusGren-tPSetGren + tPResusBlue - tPSetBlue
 
 
-   nlev= anint(sDepthW/dz)
-   if (n .eq. 1) then
-      open(unit=9999,file='auxtot.dat',status = 'REPLACE',ACTION='write')
-   else
-      open(unit=9999,file='auxtot.dat',Access = 'append',Status='old')
-   endif
-   
-!  feh update time step count
-   if (mod(n-1,nlev) .eq. 0) then
-      t=t+1
-   endif
-!  update depth count
-   if (mod(t,144*4) .eq. 0) then
-      i=i+1
-   else 
-!  i should start with 0, so i initialized as -1
-      i=-1
-   endif
-!  j should start with 0
-   if (mod(n-1,144*nlev*4) .eq. 0) then
-      j=j+1
-   endif
-   if (mod(t,144*4) .eq. 0) then
-! feh only write out the scaler that I wanted to plot
-      write(9999,*), j,i, TN_aux,TP_aux
-   endif
-   close(9999)
-!  feh update total step count
-   n=n+1
+!   nlev= anint(sDepthW/dz)
+!   if (n .eq. 1) then
+!      open(unit=9999,file='auxtot.dat',status = 'REPLACE',ACTION='write')
+!   else
+!      open(unit=9999,file='auxtot.dat',Access = 'append',Status='old')
+!   endif
+!   
+!!  feh update time step count
+!   if (mod(n-1,nlev) .eq. 0) then
+!      t=t+1
+!   endif
+!!  update depth count
+!   if (mod(t,144*4) .eq. 0) then
+!      i=i+1
+!   else 
+!!  i should start with 0, so i initialized as -1
+!      i=-1
+!   endif
+!!  j should start with 0
+!   if (mod(n-1,144*nlev*4) .eq. 0) then
+!      j=j+1
+!   endif
+!   if (mod(t,144*4) .eq. 0) then
+!! feh only write out the scaler that I wanted to plot
+!      write(9999,*), j,i, TN_aux,TP_aux
+!   endif
+!   close(9999)
+!!  feh update total step count
+!   n=n+1
 !-----------------------------------------------------------------------
 !  feh end of temperal solution for output benthic diagnostic variables
 !-----------------------------------------------------------------------
