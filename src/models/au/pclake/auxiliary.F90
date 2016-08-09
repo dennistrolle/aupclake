@@ -205,7 +205,7 @@
    call self%register_state_dependency(self%id_SWNH4,   'Ammonium_pool_in_water',         'g m-3',  'Ammonium_pool_in_water')
    call self%register_state_dependency(self%id_SWNO3,   'Nitrate_pool_in_water',          'g m-3',  'Nitrate_pool_in_water')
    call self%register_state_dependency(self%id_SWPO4,   'Phosphate_pool_in_water',        'g m-3',  'Phosphate_pool_in_water')
-   call self%register_state_dependency(self%id_SWPAIM,  'Adsorbed_phosphorus_in_water',   'g m-3',  'Adsorbed_phosphorus_in_water')
+   call self%register_state_dependency(self%id_SWPAIM,  'Adsorbed_phosphorus_in_water'  , 'g m-3',  'Adsorbed_phosphorus_in_water')
    call self%register_state_dependency(self%id_SWO2,    'Oxygen_pool_in_water',           'g m-3',  'Oxygen_pool_in_water')
    call self%register_state_dependency(self%id_SWDIM,   'Inorg_pool_in_water',            'g m-3',  'Inorg_pool_in_water')
    call self%register_state_dependency(self%id_SWDDet,  'Detritus_DW_in_water',           'g m-3',  'Detritus_DW_in_water')

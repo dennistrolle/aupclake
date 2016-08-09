@@ -218,19 +218,24 @@
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,  self%id_sNVeg)
    call self%add_to_aggregate_variable(standard_variables%total_phosphorus,self%id_sPVeg)
 !  register state variables dependencies
-   call self%register_state_dependency(self%id_NH4poolW,  'Ammonium_pool_water',       'g m-3', 'Ammonium pool for nutrient uptake')
+   call self%register_state_dependency(self%id_NH4poolW,  'Ammonium_pool_water',      'g m-3', 'Ammonium pool for nutrient uptake')
    call self%register_state_dependency(self%id_NO3poolW,  'Nitrate_pool_water',       'g m-3', 'Nitrate pool for nutrient uptake')
    call self%register_state_dependency(self%id_PO4poolW,  'Phosphate_pool_water',     'g m-3', 'Phosphate pool for nutrient uptake')
-   call self%register_state_dependency(self%id_O2poolW,   'Oxygen_pool_water',        'g m-3', 'oxygen pool in water')
-   call self%register_state_dependency(self%id_DDetpoolW, 'Detritus_DW_pool_water',   'g m-3', 'detritus_DW_pool_water')
-   call self%register_state_dependency(self%id_DNetpoolW, 'Detritus_N_pool_water',    'g m-3', 'detritus_N_pool_water')
-   call self%register_state_dependency(self%id_DPetpoolW, 'Detritus_P_pool_water',    'g m-3', 'detritus_P_pool_water')
-   call self%register_state_dependency(self%id_NH4poolS,  'Ammonium_pool_sediment',    'g m-2', 'Ammonium pool for nutrient uptake')
+   call self%register_state_dependency(self%id_O2poolW,   'Oxygen_pool_water',        'g m-3', 'Oxygen pool in water')
+   call self%register_state_dependency(self%id_DDetpoolW, 'Detritus_DW_pool_water',   'g m-3', 'Detritus_DW_pool_water')
+   call self%register_state_dependency(self%id_DNetpoolW, 'Detritus_N_pool_water',    'g m-3', 'Detritus_N_pool_water')
+   call self%register_state_dependency(self%id_DPetpoolW, 'Detritus_P_pool_water',    'g m-3', 'Detritus_P_pool_water')
+   call self%register_state_dependency(self%id_NH4poolS,  'Ammonium_pool_sediment',   'g m-2', 'Ammonium pool for nutrient uptake')
    call self%register_state_dependency(self%id_NO3poolS,  'Nitrate_pool_sediment',    'g m-2', 'Nitrate pool for nutrient uptake')
    call self%register_state_dependency(self%id_PO4poolS,  'Phosphate_pool_sediment',  'g m-2', 'Phosphate pool for nutrient uptake')
-   call self%register_state_dependency(self%id_DDetpoolS, 'Detritus_DW_pool_sediment','g m-2', 'detritus_DW_pool_sediment')
-   call self%register_state_dependency(self%id_DNetpoolS, 'Detritus_N_pool_sediment', 'g m-2', 'detritus_N_pool_sediment')
-   call self%register_state_dependency(self%id_DPetpoolS, 'Detritus_P_pool_sediment', 'g m-2', 'detritus_P_pool_sediment')
+   call self%register_state_dependency(self%id_DDetpoolS, 'Detritus_DW_pool_sediment','g m-2', 'Detritus_DW_pool_sediment')
+   call self%register_state_dependency(self%id_DNetpoolS, 'Detritus_N_pool_sediment', 'g m-2', 'Detritus_N_pool_sediment')
+   call self%register_state_dependency(self%id_DPetpoolS, 'Detritus_P_pool_sediment', 'g m-2', 'Detritus_P_pool_sediment')
+!------------------------------------------------------------------------------------------------------------
+!  register diagnostic dependencies
+!------------------------------------------------------------------------------------------------------------
+!  step1, Register dependencies on external diagnostic variables
+   call self%register_dependency(self%id_afOxySed,        'Oxic_layer_value',          '[-]',  'Oxic_layer_value')
 !------------------------------------------------------------------------------------------------------------
 !  register environmental dependencies
 !------------------------------------------------------------------------------------------------------------
@@ -241,11 +246,6 @@
    call self%register_dependency(self%id_dz,     standard_variables%cell_thickness)
    call self%register_dependency(self%id_par,    standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_meanpar,temporal_mean(self%id_par,period=86400._rk,resolution=3600._rk))
-!------------------------------------------------------------------------------------------------------------
-!  register diagnostic dependencies
-!------------------------------------------------------------------------------------------------------------
-!  step1, Register dependencies on external diagnostic variables
-   call self%register_dependency(self%id_afOxySed, 'Oxic_layer_value','[-]','Oxic_layer_value')
 
    return
 
