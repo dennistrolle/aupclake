@@ -218,23 +218,17 @@
    call self%register_state_variable(self%id_sDPisc,'sDPisc','g m-3','piscivorous fish biomass', &
                                     initial_value=0.01_rk,minimum=NearZero,no_river_dilution=.TRUE.)
 !   call self%set_variable_property(self%id_sDPisc,'disable_transport',.true.)
-!  Fish manipulation, if manipulation turned on, then registered state variable of fish biomass change
+!  Fish manipulation, if manipulation,register state variable of fish biomass change
 !  as well as register external fish manipulation rate
-!  If benthivorous fish manipulation tured on
-   If(self%Manipulate_FiAd) then
-     call self%register_state_variable(self%id_ChangedFiAd, 'ChangedFiAd',          '',    'changed benthivorous fish biomass', 0.0_rk)
-     call self%register_dependency(self%id_ManFiAd,         'manipulate_rate_FiAd', 's-1', 'benthivorous fish manipulate rate')
-   endif
-!  If zooplanktivorous turned on
-   If(self%Manipulate_FiJv) then
-     call self%register_state_variable(self%id_ChangedFiJv,  'ChangedFiJv',          '',    'changed zooplanktivorous biomass', 0.0_rk)
-     call self%register_dependency(self%id_ManFiJv,          'manipulate_rate_FiJv', 's-1', 'zooplanktivorous manipulate rate')
-   endif
-!  If piscivorous fish turned on
-   If(self%Manipulate_Pisc) then
-     call self%register_state_variable(self%id_ChangedPisc,  'ChangedPisc',          '',    'changed piscivorous fish biomass', 0.0_rk)
-     call self%register_dependency(self%id_ManPisc,          'manipulate_rate_Pisc', 's-1', 'piscivorous fish manipulate rate')
-   endif
+!  Benthivorous fish manipulation 
+   call self%register_state_variable(self%id_ChangedFiAd, 'ChangedFiAd',          '',    'changed benthivorous fish biomass', 0.0_rk)
+   call self%register_dependency(self%id_ManFiAd,         'manipulate_rate_FiAd', 's-1', 'benthivorous fish manipulate rate')
+!  Zooplanktivorous fish manipulation
+   call self%register_state_variable(self%id_ChangedFiJv,  'ChangedFiJv',          '',    'changed zooplanktivorous biomass', 0.0_rk)
+   call self%register_dependency(self%id_ManFiJv,          'manipulate_rate_FiJv', 's-1', 'zooplanktivorous manipulate rate')
+!  Piscivorous fish manipulation
+   call self%register_state_variable(self%id_ChangedPisc,  'ChangedPisc',          '',    'changed piscivorous fish biomass', 0.0_rk)
+   call self%register_dependency(self%id_ManPisc,          'manipulate_rate_Pisc', 's-1', 'piscivorous fish manipulate rate')
 !  Register diagnostic variables for dependencies in other modules
    call self%register_diagnostic_variable(self%id_aNPisc,    'aNPisc',      'g m-3',     'Piscivorous fish nitrogen content',   output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_aPPisc,    'aPPisc',      'g m-3',     'Piscivorous fish phosphorus content', output=output_instantaneous)
@@ -441,20 +435,15 @@
 !  Fish manipulation, if turned on, get the dependencies
 !  and state variables
 !  If benthivorous fish manipulation tured on
-  If(self%Manipulate_FiAd) then
-    _GET_HORIZONTAL_(self%id_ManFiAd,rManFiAd)
-    _GET_(self%id_ChangedFiAd,ChangedFiAd)
-  endif
+   _GET_HORIZONTAL_(self%id_ManFiAd,rManFiAd)
+   _GET_(self%id_ChangedFiAd,ChangedFiAd)
 !  If zooplanktivorous manipulation tured on
-  If(self%Manipulate_FiJv) then
-     _GET_HORIZONTAL_(self%id_ManFiJv,rManFiJv)
-     _GET_(self%id_ChangedFiJv,ChangedFiJv)
-  endif
+   _GET_HORIZONTAL_(self%id_ManFiJv,rManFiJv)
+   _GET_(self%id_ChangedFiJv,ChangedFiJv)
+
 !  If piscivorous fish manipulation tured on
-  If(self%Manipulate_Pisc) then
-     _GET_HORIZONTAL_(self%id_ManPisc,rManPisc)
-     _GET_(self%id_ChangedPisc,ChangedPisc)
-  endif
+   _GET_HORIZONTAL_(self%id_ManPisc,rManPisc)
+   _GET_(self%id_ChangedPisc,ChangedPisc)
 
 !  convert fish concentration to areal units
    sDFiJv=sDFiJv*sDepthW
@@ -774,19 +763,23 @@
 !-----------------------------------------------------------------------
 !  If benthivorous fish manipulation tured on
    If(self%Manipulate_FiAd) then
-     tDManFiAd= sDFiAd*rManFiAd/secs_pr_day
+     tDManFiAd= sDFiAd * log(1+rManFiAd)/secs_pr_day
+!     print *, 'rManFiAd', rManFiAd
    else
      tDManFiAd = 0.0_rk
+!     print *, 'not entering manipulation'
    endif
 !  If zooplanktivorous manipulation tured on
    If(self%Manipulate_FiJv) then
-      tDManFiJv= sDFiJv*rManFiJv/secs_pr_day
+      tDManFiJv= sDFiJv * log(1+rManFiJv)/secs_pr_day
+!      print *, 'rManFiJv', rManFiJv
    else
       tDManFiJv = 0.0_rk
    endif
 !  If piscivorous fish manipulation tured on
    If(self%Manipulate_Pisc) then
-      tDManPisc= sDPisc*rManPisc/secs_pr_day
+      tDManPisc= sDPisc * log(1+rManPisc)/secs_pr_day
+      print *, 'rManPisc', rManPisc
    else
       tDManPisc = 0.0_rk
    endif
@@ -799,31 +792,31 @@
 !  total flux of Fish change to state variables
 !-----------------------------------------------------------------------
 !  total_fish_flux_of_DW_in_Young_fish
-   tDFiJv = tDMigrFiJv + tDReprFish + tDAssFiJv - tDRespFiJv - tDMortFiJv - tDConsFiJvPisc - tDAgeFish - tDManFiJv
+   tDFiJv = tDMigrFiJv + tDReprFish + tDAssFiJv - tDRespFiJv - tDMortFiJv - tDConsFiJvPisc - tDAgeFish + tDManFiJv
 !  temperal solution, vertial averaged
    wDFiJv=tDFiJv/sDepthW
 !  total_fish_flux_of_P_in_Young_fish
-   tPFiJv = tPMigrFiJv + tPReprFish  + tPAssFiJv - tPExcrFiJv - tPMortFiJv - tPConsFiJvPisc - tPAgeFish - tNManFiJv
+   tPFiJv = tPMigrFiJv + tPReprFish  + tPAssFiJv - tPExcrFiJv - tPMortFiJv - tPConsFiJvPisc - tPAgeFish + tNManFiJv
 !  temperal solution, vertial averaged
    wPFiJv = tPFiJv/sDepthW
 !  total_fish_flux_of_N_in_Young_fish
-   tNFiJv = tNMigrFiJv + tNReprFish + tNAssFiJv - tNExcrFiJv - tNMortFiJv - tNConsFiJvPisc - tNAgeFish - tPManFiJv
+   tNFiJv = tNMigrFiJv + tNReprFish + tNAssFiJv - tNExcrFiJv - tNMortFiJv - tNConsFiJvPisc - tNAgeFish + tPManFiJv
 !  temperal solution, vertial averaged
    wNFiJv= tNFiJv/ sDepthW
 !  total_fish_flux_of_DW_in_Adult_fish
-   tDFiAd = tDMigrFiAd - tDRespFiAd - tDReprFish - tDConsFiAdPisc + tDAgeFish- tDManFiAd - tDMortFiAd
+   tDFiAd = tDMigrFiAd - tDRespFiAd - tDMortFiAd - tDReprFish - tDConsFiAdPisc + tDAgeFish+ tDManFiAd 
 !  temperal solution, vertial averaged
    wDFiAd= tDFiAd/ sDepthW
 !  total_fish_flux_of_P_in_Adult_fish
-   tPFiAd = tPMigrFiAd  - tPExcrFiAd - tPMortFiAd - tPReprFish - tPConsFiAdPisc + tPAgeFish - tPManFiAd
+   tPFiAd = tPMigrFiAd  - tPExcrFiAd - tPMortFiAd - tPReprFish - tPConsFiAdPisc + tPAgeFish + tPManFiAd
 !  temperal solution, vertial averaged
    wPFiAd= tPFiAd/ sDepthW
 !  total_fish_flux_of_N_in_Adult_fish
-   tNFiAd = tNMigrFiAd - tNExcrFiAd - tNMortFiAd - tNReprFish - tNConsFiAdPisc + tNAgeFish - tNManFiAd
+   tNFiAd = tNMigrFiAd - tNExcrFiAd - tNMortFiAd - tNReprFish - tNConsFiAdPisc + tNAgeFish + tNManFiAd
 !  temperal solution, vertial averaged
    wNFiAd= tNFiAd/ sDepthW
 !  total_fish_flux_of_DW_in_predatory_fish
-   tDPisc = tDMigrPisc + tDAssPisc - tDRespPisc - tDMortPisc - tDManPisc
+   tDPisc = tDMigrPisc + tDAssPisc - tDRespPisc - tDMortPisc + tDManPisc
    wDPisc=tDPisc/sDepthW
 !=======================================================================
 !  fish processes relating to other modules
@@ -972,18 +965,11 @@
 !  Updated changed fish biomass for biomanipulation
 !-----------------------------------------------------------------------
 !  If benthivorous fish manipulation tured on
-   If(self%Manipulate_FiAd) then
-     _SET_ODE_(self%id_ChangedFiAd,tDManFiAd)
-   endif
+   _SET_ODE_(self%id_ChangedFiAd,tDManFiAd)
 !  If zooplanktivorous manipulation tured on
-   If(self%Manipulate_FiJv) then
-     _SET_ODE_(self%id_ChangedFiJv,tDManFiJv)
-   endif
+   _SET_ODE_(self%id_ChangedFiJv,tDManFiJv)
 !  If Piscivorous fish manipulation tured ontPEgesFiAdDet
-   If(self%Manipulate_Pisc) then
-     _SET_ODE_(self%id_ChangedPisc,tDManPisc)
-   endif
-
+   _SET_ODE_(self%id_ChangedPisc,tDManPisc)
 
    _LOOP_END_
 ! Spatial loop end
