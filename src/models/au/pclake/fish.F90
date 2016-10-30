@@ -402,6 +402,7 @@
    real(rk)     :: tPManFiAd,tPManFiJv
    real(rk)     :: ChangedFiAd,ChangedFiJv,ChangedPisc
    integer, save :: n=0
+   real(rk)     ::  k1,r1
 
 !EOP
 !-----------------------------------------------------------------------
@@ -771,15 +772,16 @@
    endif
 !  If zooplanktivorous manipulation tured on
    If(self%Manipulate_FiJv) then
+!      k = log(1+rManFiJv)/(secs_pr_day*7.0_rk)
       tDManFiJv= sDFiJv * log(1+rManFiJv)/secs_pr_day
-!      print *, 'rManFiJv', rManFiJv
+!      print *, 'step=', n, 'rManFiJv', rManFiJv, 'tDManFijv', tDManFijv,k
    else
       tDManFiJv = 0.0_rk
    endif
 !  If piscivorous fish manipulation tured on
    If(self%Manipulate_Pisc) then
       tDManPisc= sDPisc * log(1+rManPisc)/secs_pr_day
-      print *, 'rManPisc', rManPisc
+!      print *, 'rManPisc', rManPisc
    else
       tDManPisc = 0.0_rk
    endif
@@ -793,6 +795,7 @@
 !-----------------------------------------------------------------------
 !  total_fish_flux_of_DW_in_Young_fish
    tDFiJv = tDMigrFiJv + tDReprFish + tDAssFiJv - tDRespFiJv - tDMortFiJv - tDConsFiJvPisc - tDAgeFish + tDManFiJv
+   k1 = tDMigrFiJv + tDReprFish + tDAssFiJv - tDRespFiJv - tDMortFiJv - tDConsFiJvPisc - tDAgeFish
 !  temperal solution, vertial averaged
    wDFiJv=tDFiJv/sDepthW
 !  total_fish_flux_of_P_in_Young_fish

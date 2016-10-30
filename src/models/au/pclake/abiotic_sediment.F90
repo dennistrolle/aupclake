@@ -61,6 +61,9 @@
       type (type_bottom_state_variable_id) :: id_sPO4S,id_sPAIMS,id_sNH4S
       type (type_bottom_state_variable_id) :: id_sNO3S
       type (type_bottom_state_variable_id) :: id_sDHumS,id_sNHumS,id_sPHumS
+!!    register for dissolved organic matter in sediment
+      type (type_bottom_state_variable_id) :: id_sDDisDetS,id_sNDisDetS
+      type (type_bottom_state_variable_id) :: id_sPDisDetS,id_sSiDisDetS
 !     diagnostic variables for local output
 !     rPDDetS: P/D ratio of detritus
 !     rNDDetS: N/D ratio of detritus
@@ -86,6 +89,9 @@
 !     diff+nut: diffusion fluxes of nutrients between water and sediment
       type (type_state_variable_id) :: id_MinSiO2Sed ,id_O2ConsumpSed
       type (type_state_variable_id) :: id_diffNH4,id_diffNO3,id_diffPO4
+!     added dissolved organics fluxes dependencies
+      type (type_state_variable_id) :: id_diffDisDDet,id_diffDisNDet
+      type (type_state_variable_id) :: id_diffDisPDet,id_diffDisSiDet
 !     environmental dependencies
 !     April 15th,2016, added dz, cell_thickness(feh) 
       type (type_dependency_id)                :: id_uTm,id_dz
@@ -104,7 +110,7 @@
 !     denitrification parameters
       real(rk)                   :: NO3PerC,hNO3Denit
 !     detritus related parameters
-      real(rk)                   :: fRefrDetS,cThetaMinS,kDMinDetS
+      real(rk)                   :: fRefrDetS,cThetaMinS
       real(rk)                   :: kNitrS,cThetaNitr
 !     Humus related parameters
       real(rk)                   :: kDMinHum
@@ -112,7 +118,12 @@
       real(rk)                   :: fDepthDifS,cThetaDif,cTurbDifNut
       real(rk)                   :: kNDifNH4,kNDifNO3,kPDifPO4
       real(rk)                   :: kO2Dif,cTurbDifO2
-
+!     added step1 mineralization pars
+      real(rk)                   :: cThetaMinS_1,kDMinDetS_1
+!     added step 2 mineralization pars
+      real(rk)                   :: kDMinDetS,kNMinDetS,kPMinDetS,kSiMinDetS
+!     added dissolved organic diffusion pars
+      real(rk)                   :: kDDifDet,kNDifDet,kPDifDet,kSiDifDet
 
 !
       contains
@@ -158,7 +169,6 @@
 !  and are converted here to values per second.
    call self%get_parameter(self%cDepthS,    'cDepthS',     'm',                    'sediment depth',                                           default=0.1_rk)
    call self%get_parameter(self%fRefrDetS,  'fRefrDetS',   '[-]',                  'nutrient diffusion distance as fraction of sediment depth',default=0.15_rk)
-   call self%get_parameter(self%kDMinDetS,  'kDMinDetS',   'd-1',                  'decomposition constant of sediment detritus',              default=0.002_rk,  scale_factor=1.0_rk/secs_pr_day)
    call self%get_parameter(self%cThetaMinS, 'cThetaMinS',  '[-]',                  'expon. temp. constant of sediment mineralization',         default=1.07_rk)
    call self%get_parameter(self%cCPerDW,    'cCPerDW',     'gC/gDW',               'C content of organic matter',                              default=0.4_rk)
    call self%get_parameter(self%O2PerNH4,   'O2PerNH4',    'mol',                  'O2 used per mol NH4+ nitrified',                           default=2.0_rk)
@@ -187,7 +197,19 @@
    call self%get_parameter(self%kO2Dif,     'kO2Dif',      'm2/day',               'mol. O2 diffusion constant',                               default=0.000026_rk, scale_factor=1.0_rk/secs_pr_day)
    call self%get_parameter(self%cTurbDifO2, 'cTurbDifO2',  '[-]',                  'bioturbation factor for diffusion',                        default=5.0_rk)
    call self%get_parameter(self%kDMinHum,   'kDMinHum',    'd-1',                  'maximum_decomposition_constant_of_humic_material_(1D-5)',  default=0.00001_rk , scale_factor=1.0_rk/secs_pr_day)
-
+!  added step 1 min. pars
+   call self%get_parameter(self%kDMinDetS_1,  'kDMinDetS_1',   'd-1',              'decomposition constant of sediment step 1. min.',          default=0.002_rk,  scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%cThetaMinS_1, 'cThetaMinS_1',  '[-]',              'temperature coeff. of sediment step 1. min.',              default=1.07_rk)
+!  added step 2. min. pars
+   call self%get_parameter(self%kDMinDetS,  'kDMinDetS',  'day-1',                 'decomposition constant of sediment dissolved organics',    default=0.002_rk,    scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%kNMinDetS,  'kNMinDetS',  'day-1',                 'decomposition constant of sediment organic-N',             default=0.002_rk,    scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%kPMinDetS,  'kPMinDetS',  'day-1',                 'decomposition constant of sediment organic-P',             default=0.002_rk,    scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%kSiMinDetS, 'kSiMinDetS', 'day-1',                 'decomposition constant of sediment organic-Si',            default=0.002_rk,    scale_factor=1.0_rk/secs_pr_day)
+!  added diffusion pars
+   call self%get_parameter(self%kDDifDet,    'kDDifDet',     'm2/day',             'mol. dissolved organics diffusion constant',               default=0.000112_rk, scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%kNDifDet,    'kNDifDet',     'm2/day',             'mol. dissolved organic_N diffusion constant',              default=0.000112_rk, scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%kPDifDet,    'kPDifDet',     'm2/day',             'mol. dissolved organic_P diffusion constant',              default=0.000112_rk, scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%kSiDifDet,   'kSiDifDet',    'm2/day',             'mol. dissolved organic_Si diffusion constant',             default=0.000112_rk, scale_factor=1.0_rk/secs_pr_day)
 !  Register local state variable
 !  Inorganic matter
    call self%register_state_variable(self%id_sDIMS,  'sDIMS',  'g m-2','sediment inorg.Matter',  initial_value=39611.3_rk, minimum=_ZERO_)
@@ -196,6 +218,11 @@
    call self%register_state_variable(self%id_sNDetS, 'sNDetS', 'g m-2','sediment detritus N',    initial_value=4.54_rk,    minimum=_ZERO_)
    call self%register_state_variable(self%id_sPDetS, 'sPDetS', 'g m-2','sediment detritus P',    initial_value=0.454_rk,   minimum=_ZERO_)
    call self%register_state_variable(self%id_sSiDetS,'sSiDetS','g m-2','sediment detritus Si',   initial_value=1.82_rk,    minimum=_ZERO_)
+!  dissolved organics
+   call self%register_state_variable(self%id_sDDisDetS, 'sDDisDetS', 'g m-2','dissolved sediment organics',   initial_value=0.01_rk,   minimum=_ZERO_)
+   call self%register_state_variable(self%id_sNDisDetS, 'sNDisDetS', 'g m-2','dissolved sediment organic N',  initial_value=0.01_rk,    minimum=_ZERO_)
+   call self%register_state_variable(self%id_sPDisDetS, 'sPDisDetS', 'g m-2','dissolved sediment organic P',  initial_value=0.01_rk,   minimum=_ZERO_)
+   call self%register_state_variable(self%id_sSiDisDetS,'sSiDisDetS','g m-2','dissolved sediment organic Si', initial_value=1.82_rk,    minimum=_ZERO_)
 !  Dissolved nutrients
    call self%register_state_variable(self%id_sPO4S,  'sPO4S',   'g m-2','Sediment Phosphate',    initial_value=0.182_rk,   minimum=_ZERO_)
    call self%register_state_variable(self%id_sPAIMS, 'sPAIMS',  'g m-2','SED_Absorbed Phosphate',initial_value=17.99_rk,   minimum=_ZERO_)
@@ -222,6 +249,11 @@
    call self%register_state_dependency(self%id_diffNH4,      'NH4_diffusion_flux',              'g m-3', 'NH4_diffusion_flux')
    call self%register_state_dependency(self%id_diffNO3,      'NO3_diffusion_flux',              'g m-3', 'NO3_diffusion_flux')
    call self%register_state_dependency(self%id_diffPO4,      'PO4_diffusion_flux',              'g m-3', 'PO4_diffusion_flux')
+   call self%register_state_dependency(self%id_diffDisDDet,  'DisDDet_diffusion_flux',          'g m-3', 'DisDDet_diffusion_flux')
+   call self%register_state_dependency(self%id_diffDisNDet,  'DisNDet_diffusion_flux',          'g m-3', 'DisNDet_diffusion_flux')
+   call self%register_state_dependency(self%id_diffDisPDet,  'DisPDet_diffusion_flux',          'g m-3', 'DisPDet_diffusion_flux')
+   call self%register_state_dependency(self%id_diffDisSiDet, 'DisSiDet_diffusion_flux',         'g m-3', 'DisSiDet_diffusion_flux')
+
 !  Register diagnostic variables
    call self%register_diagnostic_variable(self%id_afOxySed,       'afOxySed',       '[-]',       'fraction of aerobic sediment',        output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_rPDDetS,        'rPDDetS',        '[-]',       'detritus_P/D_ration_sed',             output=output_instantaneous)
@@ -277,6 +309,9 @@
    real(rk)                   :: sNH4S,sNO3S,sPO4S,sPAIMS,sDIMS
    real(rk)                   :: sDDetS,sNDetS,sPDetS,sSiDetS
    real(rk)                   :: sDHumS,sNHumS,sPHumS
+!  carriers for dissolved organics
+   real(rk)                   :: sDDisDetS,sNDisDetS,sPDisDetS,sSiDisDetS
+   real(rk)                   :: sDDisDetW,sNDisDetW,sPDisDetW,sSiDisDetW
 !  nutrients ratios
    real(rk)                   :: rPDDetS,rNDDetS
 !  carriers for environmental dependencies
@@ -285,19 +320,14 @@
 !  in abiotic water column module
    real(rk)                   :: sO2W,sNH4W,sNO3W,sPO4W
 !  variables for local processes
-   real(rk)                   :: kPMinDetS,kNMinDetS,kSiMinDetS
    real(rk)                   :: afOxySed, aDepthOxySed
-   real(rk)                   :: tSOD,tDMinDetS,uFunTmNitr,tNNitrS
+   real(rk)                   :: tSOD,uFunTmNitr,tNNitrS
    real(rk)                   :: oNH4S,oNO3S,oPO4S
-   real(rk)                   :: tO2MinDetS, tDMinOxyDetS,tO2NitrS
+   real(rk)                   :: tO2NitrS
    real(rk)                   :: tNAbioNO3S,tNDenitS,tDDenitS
-   real(rk)                   :: tNAbioNH4S,tNMinDetS,uFunTmMinS
-   real(rk)                   :: tPAbioPO4S,tPMinDetS,tPSorpIMS,aPEqIMS
+   real(rk)                   :: tNAbioNH4S
+   real(rk)                   :: tPAbioPO4S,tPSorpIMS,aPEqIMS
    real(rk)                   :: aPIsoAdsS,aPAdsMaxS,aKPAdsS,tPChemPO4,tPAbioAIMS
-   real(rk)                   :: tSiMinDetS,tDAbioDetS
-   real(rk)                   :: tNAbioDetS
-   real(rk)                   :: tPAbioDetS
-   real(rk)                   :: tSiAbioDetS
    real(rk)                   :: tDAbioIMS
 !  variables for diffusion(in the order of apperance)
    real(rk)                   :: aDepthDif,tNDifNH4,tNDifNO3,tPDifPO4
@@ -305,6 +335,23 @@
 !  Variables for humus
    real(rk)    :: tDMinHumS,tNMinHumS,tPMinHumS
    real(rk)    :: tDAbioHumS,tNAbioHumS,tPAbioHumS
+!  variables for mineralization
+!  step 1 min. variables
+   real(rk)                   :: uFunTmMinS_1,kPMinDetS_1,kNMinDetS_1,kSiMinDetS_1
+   real(rk)                   :: tDMinDetS_1,tNMinDetS_1,tPMinDetS_1,tSiMinDetS_1
+!  step 2 min. variables
+   real(rk)                   :: uFunTmMinS,kPMinDetS,kNMinDetS,kSiMinDetS
+   real(rk)                   :: tDMinDetS,tNMinDetS, tPMinDetS,tSiMinDetS
+!  dissolved organic matter diffusion variables
+   real(rk)                   :: oDDisDetS,oNDisDetS,oPDisDetS,oSiDisDetS
+   real(rk)                   :: tDDifDet,tNDifDet,tPDifDet,tSiDifDet
+
+   real(rk)                   :: tDAbioDetS,tNAbioDetS,tPAbioDetS,tSiAbioDetS
+   real(rk)                   :: tO2MinDetS, tDMinOxyDetS
+
+
+!   real(rk)                   :: 
+
 !feh: July 4th, 2016
 !  n for total step counter, t for time step counter, i for output
 !  for dataframe indext !  j is day counter
@@ -333,6 +380,11 @@
    _GET_HORIZONTAL_(self%id_sPAIMS,sPAIMS)
    _GET_HORIZONTAL_(self%id_sNH4S,sNH4S)
    _GET_HORIZONTAL_(self%id_sNO3S,sNO3S)
+!  Retrieve dissolved organic state variables
+   _GET_HORIZONTAL_(self%id_sDDisDetS,sDDisDetS)
+   _GET_HORIZONTAL_(self%id_sNDisDetS,sNDisDetS)
+   _GET_HORIZONTAL_(self%id_sPDisDetS,sPDisDetS)
+   _GET_HORIZONTAL_(self%id_sSiDisDetS,sSiDisDetS)
 
 !  Humus
    _GET_HORIZONTAL_(self%id_sDHumS,sDHumS)
@@ -344,6 +396,12 @@
    _GET_(self%id_diffNH4,sNH4W)
    _GET_(self%id_diffNO3,sNO3W)
    _GET_(self%id_diffPO4,sPO4W)
+!  retrieve dissolved organics in the water column
+   _GET_(self%id_diffDisDDet, sDDisDetW)
+   _GET_(self%id_diffDisNDet, sNDisDetW)
+   _GET_(self%id_diffDisPDet, sPDisDetW)
+   _GET_(self%id_diffDisSiDet,sSiDisDetW)
+   
 !  retrieve environmental dependencies
    _GET_(self%id_uTm,uTm)
    _GET_HORIZONTAL_(self%id_depth,depth)
@@ -372,23 +430,37 @@
    oNH4S=sNH4S/self%cDepthS/self%bPorS
 !  conc._dissolved_P_in_interstitial_water
    oPO4S = sPO4S / self%cDepthS / self%bPorS
+
 !-----------------------------------------------------------------------
-!  Mineralization functions
+!  Mineralization, step 1, par. organic to dis. organic
 !-----------------------------------------------------------------------
-!  P_mineralisation_constant_in_sed.
-   kPMinDetS=self%kDMinDetS
-!  N_mineralisation_constant_in_sed.
-   kNMinDetS=self%kDMinDetS
-!  Si_mineralisation_constant_in_sed.
-   kSiMinDetS=self%kDMinDetS
+!  temperature function for step 1. min.
+   uFunTmMinS_1=uFunTmAbio(uTm,self%cThetaMinS_1)
+!  P_mineralisation_constant_in_sed., 1. step
+   kPMinDetS_1=self%kDMinDetS_1
+!  N_mineralisation_constant_in_sed. , 1. step
+   kNMinDetS_1=self%kDMinDetS_1
+!  Si_mineralisation_constant_in_sed., 1. step
+   kSiMinDetS_1=self%kDMinDetS_1
 !  decomposition_of_upper_sediment
-   tDMinDetS=self%kDMinDetS*uFunTmMinS*sDDetS
+   tDMinDetS_1=self%kDMinDetS_1*uFunTmMinS_1*sDDetS
 !  mineralization_of_P_in_upper_sediment
-   tPMinDetS=kPMinDetS*uFunTmMinS*sPDetS
+   tPMinDetS_1=kPMinDetS_1*uFunTmMinS_1*sPDetS
 !  mineralization_of_N_in_upper_sediment
-   tNMinDetS=kNMinDetS*uFunTmMinS*sNDetS
+   tNMinDetS_1=kNMinDetS_1*uFunTmMinS_1*sNDetS
 !  mineralization_of_Si_in_upper_sediment
-   tSiMinDetS=kSiMinDetS*uFunTmMinS*sSiDetS
+   tSiMinDetS_1=kSiMinDetS_1*uFunTmMinS_1*sSiDetS
+!-----------------------------------------------------------------------
+!  Mineralization, step 2, dissolved organics to dissolved nut.
+!-----------------------------------------------------------------------
+!  decomposition_of_upper_sediment
+   tDMinDetS=self%kDMinDetS*uFunTmMinS*sDDisDetS
+!  mineralization_of_P_in_upper_sediment
+   tPMinDetS=self%kPMinDetS*uFunTmMinS*sPDisDetS
+!  mineralization_of_N_in_upper_sediment
+   tNMinDetS=self%kNMinDetS*uFunTmMinS*sNDisDetS
+!  mineralization_of_Si_in_upper_sediment
+   tSiMinDetS=self%kSiMinDetS*uFunTmMinS*sSiDetS
 !-----------------------------------------------------------------------
 !  diffusion process
 !-----------------------------------------------------------------------
@@ -405,6 +477,19 @@
 !  O2_diffusion_(water_->_sediment)
    tO2Dif= akO2DifCor*sO2W/aDepthDif
 !-----------------------------------------------------------------------
+!  diffusion process for dissolved organics
+!-----------------------------------------------------------------------
+!  conc._dissolved_organics_in_interstitial_water
+   oDDisDetS  = sDDisDetS  / self%cDepthS / self%bPorS
+   oNDisDetS  = sNDisDetS  / self%cDepthS / self%bPorS
+   oPDisDetS  = sPDisDetS  / self%cDepthS / self%bPorS
+   oSiDisDetS = sSiDisDetS / self%cDepthS / self%bPorS
+!  diffusion fluxes of dissolved organics
+   tDDifDet =self%kDDifDet *uFunTmDif*self%cTurbDifNut*self%bPorCorS*(oDDisDetS-sDDisDetW)/aDepthDif
+   tNDifDet =self%kNDifDet *uFunTmDif*self%cTurbDifNut*self%bPorCorS*(oNDisDetS-sNDisDetW)/aDepthDif
+   tPDifDet =self%kPDifDet *uFunTmDif*self%cTurbDifNut*self%bPorCorS*(oPDisDetS-sPDisDetW)/aDepthDif
+   tSiDifDet=self%kSiDifDet*uFunTmDif*self%cTurbDifNut*self%bPorCorS*(oSiDisDetS-sSiDisDetW)/aDepthDif
+!-----------------------------------------------------------------------
 !  Oxygen conditions in sediment
 !-----------------------------------------------------------------------
 !  sediment_oxygen_demand
@@ -417,6 +502,7 @@
    tDMinOxyDetS=afOxySed*(1.0_rk-self%fRefrDetS)*tDMinDetS
 !  sediment_oxygen_demand
    tO2MinDetS=molO2molC*self%cCPerDW*tDMinOxyDetS
+
 !-----------------------------------------------------------------------
 !  denitrification flux
 !-----------------------------------------------------------------------
