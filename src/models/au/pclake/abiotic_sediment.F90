@@ -345,12 +345,14 @@
 !  dissolved organic matter diffusion variables
    real(rk)                   :: oDDisDetS,oNDisDetS,oPDisDetS,oSiDisDetS
    real(rk)                   :: tDDifDet,tNDifDet,tPDifDet,tSiDifDet
-
-   real(rk)                   :: tDAbioDetS,tNAbioDetS,tPAbioDetS,tSiAbioDetS
+!  sediment oxygen consumption variables
    real(rk)                   :: tO2MinDetS, tDMinOxyDetS
-
-
-!   real(rk)                   :: 
+!  sediment oxygen consumption variables for dissolved organics
+   real(rk)                   :: tDMinOxyDisDetS,tO2MinDisDetS
+!  total fluxes for sediment change
+   real(rk)                   :: tDAbioDetS,tNAbioDetS,tPAbioDetS,tSiAbioDetS
+!  total fluxes for dissolved organics
+   real(rk)                   :: tDAbioDisDetS,tNAbioDisDetS,tPAbioDisDetS,tSiAbioDisDetS
 
 !feh: July 4th, 2016
 !  n for total step counter, t for time step counter, i for output
@@ -502,7 +504,13 @@
    tDMinOxyDetS=afOxySed*(1.0_rk-self%fRefrDetS)*tDMinDetS
 !  sediment_oxygen_demand
    tO2MinDetS=molO2molC*self%cCPerDW*tDMinOxyDetS
-
+!-----------------------------------------------------------------------
+! oxygen consumption for dissolved organics
+!-----------------------------------------------------------------------
+!  aerobic_mineralisation
+   tDMinOxyDisDetS=afOxySed*tDMinDetS_1
+!  sediment_oxygen_demand
+   tO2MinDisDetS=molO2molC*self%cCPerDW*tDMinOxyDisDetS
 !-----------------------------------------------------------------------
 !  denitrification flux
 !-----------------------------------------------------------------------
@@ -544,9 +552,9 @@
 !  total_abiotic/microbial_DW_inorganic_matter_flux_in_sediment
    tDAbioIMS=0.0_rk
 !  total_abiotic/microbial_DW_detritus_flux_in_sediment
-   tDAbioDetS=-tDMinDetS
+   tDAbioDetS=-tDMinDetS_1
 !  total_abiotic/microbial_P_detritus_flux_in_sediment
-   tPAbioDetS =-tPMinDetS
+   tPAbioDetS =-tPMinDetS_1
 !  total_abiotic/microbial_dissolved_P_flux_in_sediment
    tPAbioPO4S= (1.0_rk-self%fRefrDetS)*tPMinDetS + tPMinHumS -tPDifPO4-tPSorpIMS  -tPChemPO4
 !  total_abiotic/microbial_P_absorbed_onto_inorganic_matter_flux_in_sediment
@@ -556,9 +564,9 @@
 !  total_abiotic/microbial_N_NO3_flux_in_sediment
    tNAbioNO3S= tNNitrS-tNDenitS-tNDifNO3
 !  total_abiotic/microbial_N_detritus_flux_in_sediment
-   tNAbioDetS =-tNMinDetS
+   tNAbioDetS =-tNMinDetS_1
 !  total_abiotic/microbial_Si_detritus_flux_in_sediment
-   tSiAbioDetS =-tSiMinDetS
+   tSiAbioDetS =-tSiMinDetS_1
 !  Humus process
 !  total_abiotic/microbial_DW_humus_flux_in_sediment
    tDAbioHumS = self%fRefrDetS * tDMinDetS - tDMinHumS
@@ -566,6 +574,11 @@
    tNAbioHumS = self%fRefrDetS * tNMinDetS - tNMinHumS
 !  total_abiotic/microbial_P_humus_flux_in_sediment
    tPAbioHumS = self%fRefrDetS * tPMinDetS - tPMinHumS
+!  total abiotic fluxes for dissolved organics
+   tDAbioDisDetS  = tDMinDetS_1 -tDMinDetS - tDDifDet
+   tNAbioDisDetS  = tNMinDetS_1 -tNMinDetS - tNDifDet
+   tPAbioDisDetS  = tPMinDetS_1 -tPMinDetS - tPDifDet
+   tSiAbioDisDetS = tSiMinDetS_1 -tSiMinDetS - tSiDifDet
 !-----------------------------------------------------------------------
 !  update the state variables
 !-----------------------------------------------------------------------
@@ -582,13 +595,27 @@
    _SET_ODE_BEN_(self%id_sPHumS,tPAbioHumS)
    _SET_ODE_BEN_(self%id_sNHumS,tNAbioHumS)
 !-----------------------------------------------------------------------
+!  update the state variables for dissolved organics
+!-----------------------------------------------------------------------
+   _SET_ODE_BEN_(self%id_sDDisDetS, tDAbioDisDetS)
+   _SET_ODE_BEN_(self%id_sPDisDetS, tPAbioDisDetS)
+   _SET_ODE_BEN_(self%id_sNDisDetS, tNAbioDisDetS)
+   _SET_ODE_BEN_(self%id_sSiDisDetS,tSiAbioDisDetS)
+!-----------------------------------------------------------------------
 !  Update external state variables
 !-----------------------------------------------------------------------
    _SET_BOTTOM_EXCHANGE_(self%id_MinSiO2Sed,(1.0_rk-self%fRefrDetS)*tSiMinDetS)
    _SET_BOTTOM_EXCHANGE_(self%id_diffNH4, tNdifNH4)
    _SET_BOTTOM_EXCHANGE_(self%id_diffNO3,tNdifNO3)
    _SET_BOTTOM_EXCHANGE_(self%id_diffPO4,tPdifPO4)
-   _SET_BOTTOM_EXCHANGE_(self%id_O2ConsumpSed,-tO2MinDetS - tO2NitrS)
+   _SET_BOTTOM_EXCHANGE_(self%id_O2ConsumpSed,-tO2MinDetS - tO2MinDisDetS - tO2NitrS)
+!-----------------------------------------------------------------------
+!  Update external state variables for dissolved organics
+!-----------------------------------------------------------------------
+   _SET_BOTTOM_EXCHANGE_(self%id_diffDisDDet,tDDifDet)
+   _SET_BOTTOM_EXCHANGE_(self%id_diffDisNDet,tNDifDet)
+   _SET_BOTTOM_EXCHANGE_(self%id_diffDisPDet,tPDifDet)
+   _SET_BOTTOM_EXCHANGE_(self%id_diffDisSiDet,tSiDifDet)
 !-----------------------------------------------------------------------
 !  Output dependent diagnostic variables for other modules
 !-----------------------------------------------------------------------
@@ -662,8 +689,6 @@
 !-----------------------------------------------------------------------
 !  feh end of temperal solution for output benthic diagnostic variables
 !-----------------------------------------------------------------------
-
-
 
 
    _FABM_HORIZONTAL_LOOP_END_
