@@ -76,6 +76,7 @@
 !     state dependencies identifiers
       type (type_state_variable_id)            :: id_SiO2poolW,id_PO4poolW,id_NO3poolW,id_NH4poolW  ! dissolved nutrient for uptaking
       type (type_state_variable_id)            :: id_O2poolW,id_DDetpoolW,id_NDetpoolW,id_PDetpoolW,id_SiDetpoolW
+      type (type_state_variable_id)            :: id_DDisDetpoolW,id_NDisDetpoolW,id_PDisDetpoolW,id_SiDisDetpoolW
 !     environmental dependencies
       type (type_global_dependency_id)         :: id_Day
       type (type_dependency_id)                :: id_uTm,id_dz
@@ -119,6 +120,8 @@
       real(rk)   :: cExtSpDiat,cExtSpGren,cExtSpBlue
 !     minimum state variable values
       real(rk)   :: cDBlueMinW,cDGrenMinW,cDDiatMinW
+!     fraction of dissolved organics from phytoplankton
+      real(rk)   :: fDisPrimDetW
 
    contains
 
@@ -228,9 +231,11 @@
    call self%get_parameter(self%UseLightMethodBlue,'UseLightMethodBlue','[-]',       'lightmethod,1without photoinhibition,Chalker(1980)model,2with photoinhibition,Klepperetal.(1988)/Ebenhohetal.(1997)model.',default=2)
    call self%get_parameter(self%UseLightMethodDiat,'UseLightMethodDiat','[-]',       'lightmethod,1without photoinhibition,Chalker(1980)model,2with photoinhibition,Klepperetal.(1988)/Ebenhohetal.(1997)model.',default=2)
 !  the user defined minumun value for state variables
-   call self%get_parameter(self%cDBlueMinW,           'cDBlueMinW',           'gDW/m3',             'minimun blue-green algae biomass in system',                                                             default=0.00001_rk)
-   call self%get_parameter(self%cDGrenMinW,           'cDGrenMinW',           'gDW/m3',             'minimun green algae biomass in system',                                                                  default=0.00001_rk)
-   call self%get_parameter(self%cDDiatMinW,           'cDDiatMinW',           'gDW/m3',             'minimun diatom biomass in system',                                                                       default=0.00001_rk)
+   call self%get_parameter(self%cDBlueMinW,        'cDBlueMinW',        'gDW/m3',    'minimun blue-green algae biomass in system',                                                                               default=0.00001_rk)
+   call self%get_parameter(self%cDGrenMinW,        'cDGrenMinW',        'gDW/m3',    'minimun green algae biomass in system',                                                                                    default=0.00001_rk)
+   call self%get_parameter(self%cDDiatMinW,        'cDDiatMinW',        'gDW/m3',    'minimun diatom biomass in system',                                                                                         default=0.00001_rk)
+!  user defiend dissolved organics fraction                                        
+   call self%get_parameter(self%fDisPrimDetW,      'fDisPrimDetW',      '[-]',       'fraction of dissolved organics from water column phytoplankton',                                                           default=0.5_rk)
 !  Register local state variable
 !  all phytoplankton has vertical movement activated,normally netgative, meaning settling.
    call self%register_state_variable(self%id_sDDiatW,'sDDiatW','g m-3','diatom_D in water',    &
@@ -316,15 +321,19 @@
    call self%add_to_aggregate_variable(type_bulk_standard_variable(name='pclake_chla'),self%id_oChlaGren)
    call self%add_to_aggregate_variable(type_bulk_standard_variable(name='pclake_chla'),self%id_oChlaBlue)
 !  register state variables dependencies
-   call self%register_state_dependency(self%id_SiO2poolW, 'SiO2_pool_water',            'g m-3', 'SiO2_pool_water')
-   call self%register_state_dependency(self%id_PO4poolW,  'PO4_pool_water',             'g m-3', 'PO4_pool_water')
-   call self%register_state_dependency(self%id_NH4poolW,  'NH4_pool_water',             'g m-3', 'NH4_pool_water')
-   call self%register_state_dependency(self%id_NO3poolW,  'NO3_pool_water',             'g m-3', 'NO3_pool_water')
-   call self%register_state_dependency(self%id_O2poolW,   'Oxygen_pool_water',          'g m-3', 'Oxygen_pool_water)')
-   call self%register_state_dependency(self%id_DDetpoolW, 'Detritus_DW_pool_water',     'g m-3', 'Detritus_DW_pool_water')
-   call self%register_state_dependency(self%id_NDetpoolW, 'Detritus_N_pool_water',      'g m-3', 'Detritus_N_pool_water')
-   call self%register_state_dependency(self%id_PDetpoolW, 'Detritus_P_pool_water',      'g m-3', 'Detritus_P_pool_water')
-   call self%register_state_dependency(self%id_SiDetpoolW,'Detritus_Si_pool_water',     'g m-3', 'Detritus_Si_pool_water')
+   call self%register_state_dependency(self%id_SiO2poolW,    'SiO2_pool_water',             'g m-3', 'SiO2_pool_water')
+   call self%register_state_dependency(self%id_PO4poolW,     'PO4_pool_water',              'g m-3', 'PO4_pool_water')
+   call self%register_state_dependency(self%id_NH4poolW,     'NH4_pool_water',              'g m-3', 'NH4_pool_water')
+   call self%register_state_dependency(self%id_NO3poolW,     'NO3_pool_water',              'g m-3', 'NO3_pool_water')
+   call self%register_state_dependency(self%id_O2poolW,      'Oxygen_pool_water',           'g m-3', 'Oxygen_pool_water)')
+   call self%register_state_dependency(self%id_DDetpoolW,    'Detritus_DW_pool_water',      'g m-3', 'Detritus_DW_pool_water')
+   call self%register_state_dependency(self%id_NDetpoolW,    'Detritus_N_pool_water',       'g m-3', 'Detritus_N_pool_water')
+   call self%register_state_dependency(self%id_PDetpoolW,    'Detritus_P_pool_water',       'g m-3', 'Detritus_P_pool_water')
+   call self%register_state_dependency(self%id_SiDetpoolW,   'Detritus_Si_pool_water',      'g m-3', 'Detritus_Si_pool_water')
+   call self%register_state_dependency(self%id_DDisDetpoolW, 'Dissolved_detritus_DW_water', 'g m-3', 'Dissolved_detritus_DW_water')
+   call self%register_state_dependency(self%id_NDisDetpoolW, 'Dissolved_detritus_N_water',  'g m-3', 'Dissolved_detritus_N_water')
+   call self%register_state_dependency(self%id_PDisDetpoolW, 'Dissolved_detritus_P_water',  'g m-3', 'Dissolved_detritus_P_water')
+   call self%register_state_dependency(self%id_SiDisDetpoolW,'Dissolved_detritus_Si_water', 'g m-3', 'Dissolved_detritus_Si_water')
 !  register diagnostic dependencies
    call self%register_dependency(self%id_afCovSurfVeg,    'Surface_vegetation_coverage','[-]',   'Surface_vegetation_coverage')
 !  register environmental dependencies
@@ -363,8 +372,8 @@
    real(rk)   :: sDGrenW,sPGrenW,sNGrenW
    real(rk)   :: sDBlueW,sPBlueW,sNBlueW
 !  external links variable carrier
-   real(rk)   :: sSiO2W,sPO4W,sNH4W,sNO3W
-   real(rk)   :: sO2W,sDDetW,sNDetW,sPDetW
+   real(rk)   :: sSiO2W,sPO4W,sNH4W,sNO3W, sO2W
+!   real(rk)   :: sO2W,sDDetW,sNDetW,sPDetW
 !  Nutrients rations
    real(rk)   :: rPDDiatW,rNDDiatW
    real(rk)   :: rPDGrenW,rNDGrenW
@@ -414,6 +423,7 @@
 !  variables related to exchanging to other modules
    real(rk)   :: wNPrimNH4W,wNPrimNO3W,wPPrimPO4W,wSiPrimSiO2W,wO2PrimW
    real(rk)   :: wDPrimDetW,wNPrimDetW,wPPrimDetW,wSiPrimDetW
+   real(rk)   :: wDPrimDisDetW,wNPrimDisDetW,wPPrimDisDetW,wSiPrimDisDetW
    real(rk)   :: wNUptNH4Diat,wNUptNH4Gren,wNUptNH4Blue
    real(rk)   :: afNH4UptDiat,afNH4UptGren,afNH4UptBlue
    real(rk)   :: wNUptNH4Phyt,wNUptNO3Phyt,wNExcrPhytW,wNMortPhytNH4W
@@ -456,9 +466,10 @@
    _GET_(self%id_NH4poolW,sNH4W)
    _GET_(self%id_NO3poolW,sNO3W)
    _GET_(self%id_O2poolW,sO2W)
-   _GET_(self%id_DDetpoolW,sDDetW)
-   _GET_(self%id_NDetpoolW,sNDetW)
-   _GET_(self%id_PDetpoolW,sPDetW)
+!  fen: Nov.2, not used
+!   _GET_(self%id_DDetpoolW,sDDetW)
+!   _GET_(self%id_NDetpoolW,sNDetW)
+!   _GET_(self%id_PDetpoolW,sPDetW)
 !  retrieve environmental dependencies
    _GET_(self%id_uTm,uTm)
    _GET_(self%id_extc,extc)
@@ -810,16 +821,12 @@
    wPMortPhytW = wPMortDiatW + wPMortGrenW + wPMortBlueW
 !  soluble_P_flux_from_died_Algae
    wPMortPhytPO4W = self%fDissMortPhyt * wPMortPhytW
-!  total_grazing_loss
-!   wPLossPhyt = wPLossDiat + wPLossGren + wPLossBlue
-!   soluble_P_grazing_loss
-!   wPLossPhytPO4 = self%fDissLoss * wPLossPhyt
 !  total_P_excretion_phytoplankton_in_water
    wPExcrPhytW = wPExcrDiatW + wPExcrGrenW + wPExcrBlueW
 !  total_P_uptake_phytoplankton
    wPUptPhyt = wPUptDiat + wPUptGren + wPUptBlue
 !  SRP_in_water
-   wPPrimPO4W = - wPUptPhyt + wPExcrPhytW + wPMortPhytPO4W !+ wPLossPhytPO4
+   wPPrimPO4W = - wPUptPhyt + wPExcrPhytW + wPMortPhytPO4W
 !-----------------------------------------------------------------------
 !   Si exchange with abiotic module
 !-----------------------------------------------------------------------
@@ -845,26 +852,24 @@
 !-----------------------------------------------------------------------
 !  Detritus exchange with abiotic module
 !-----------------------------------------------------------------------
-!  Flux_to_water_detritus
-   wDPrimDetW = wDMortPhytW  !+ wDLossPhyt
-!   detrital_N_grazing_loss
-!   wNLossPhytDet = wNLossPhyt - wNLossPhytNH4
+!  Flux_to_water_detritus, par. and dis.
+   wDPrimDetW = wDMortPhytW * (1.0_rk - self%fDisPrimDetW)
+   wDPrimDisDetW = wDMortPhytW * self%fDisPrimDetW
 !  detrital_N_flux_from_died_Algae
    wNMortPhytDetW = wNMortPhytW - wNMortPhytNH4W
 !  Detritus_in_water
-   wNPrimDetW =wNMortPhytDetW  !+ wNLossPhytDet
-!   detrital_P_grazing_loss
-!   wPLossPhytDet = wPLossPhyt - wPLossPhytPO4
+   wNPrimDetW = wNMortPhytDetW * (1.0_rk - self%fDisPrimDetW)
+   wNPrimDisDetW = wNMortPhytDetW * self%fDisPrimDetW
 !  detrital_P_flux_from_died_Algae
    wPMortPhytDetW = wPMortPhytW - wPMortPhytPO4W
 !  Detritus_in_water
-   wPPrimDetW = wPMortPhytDetW  !+wPLossPhytDet
-!   diatom_grazing_loss
-!   wSiLossDiat = self%cSiDDiat * wDLossDiat
+   wPPrimDetW = wPMortPhytDetW * (1.0_rk - self%fDisPrimDetW)
+   wPPrimDisDetW = wPMortPhytDetW * self%fDisPrimDetW
 !  Diatoms_mortality_in_water
    wSiMortDiatW = self%cSiDDiat * wDMortDiatW
 !  total_Si_flux_to_sed._detritus_in_PRIM_module
-   wSiPrimDetW = wSiMortDiatW  !+ wSiLossDiat
+   wSiPrimDetW = wSiMortDiatW * (1.0_rk - self%fDisPrimDetW)
+   wSiPrimDisDetW = wSiMortDiatW * self%fDisPrimDetW
 !-----------------------------------------------------------------------
 !  chla calculation, for output purpose
 !-----------------------------------------------------------------------
@@ -917,15 +922,19 @@
 !-----------------------------------------------------------------------
 !  Update external state variables
 !-----------------------------------------------------------------------
-   _SET_ODE_(self%id_SiO2poolW,  wSiPrimSiO2W)
-   _SET_ODE_(self%id_PO4poolW,   wPPrimPO4W)
-   _SET_ODE_(self%id_NO3poolW,   wNPrimNO3W)
-   _SET_ODE_(self%id_NH4poolW,   wNPrimNH4W)
-   _SET_ODE_(self%id_O2poolW,    wO2PrimW)
-   _SET_ODE_(self%id_DDetpoolW,  wDPrimDetW)
-   _SET_ODE_(self%id_NDetpoolW,  wNPrimDetW)
-   _SET_ODE_(self%id_PDetpoolW,  wPPrimDetW)
-   _SET_ODE_(self%id_SiDetpoolW, wSiPrimDetW)
+   _SET_ODE_(self%id_SiO2poolW,     wSiPrimSiO2W)
+   _SET_ODE_(self%id_PO4poolW,      wPPrimPO4W)
+   _SET_ODE_(self%id_NO3poolW,      wNPrimNO3W)
+   _SET_ODE_(self%id_NH4poolW,      wNPrimNH4W)
+   _SET_ODE_(self%id_O2poolW,       wO2PrimW)
+   _SET_ODE_(self%id_DDetpoolW,     wDPrimDetW)
+   _SET_ODE_(self%id_NDetpoolW,     wNPrimDetW)
+   _SET_ODE_(self%id_PDetpoolW,     wPPrimDetW)
+   _SET_ODE_(self%id_SiDetpoolW,    wSiPrimDetW)
+   _SET_ODE_(self%id_DDisDetpoolW,  wDPrimDisDetW)
+   _SET_ODE_(self%id_NDisDetpoolW,  wNPrimDisDetW)
+   _SET_ODE_(self%id_PDisDetpoolW,  wPPrimDisDetW)
+   _SET_ODE_(self%id_SiDisDetpoolW, wSiPrimDisDetW)
 !-----------------------------------------------------------------------
 !  Output dependent diagnostic variables for other modules
 !-----------------------------------------------------------------------

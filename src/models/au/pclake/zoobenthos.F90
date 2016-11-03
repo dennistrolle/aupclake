@@ -58,6 +58,7 @@
       type (type_bottom_state_variable_id)            :: id_NH4poolS,id_NO3poolS,id_PO4poolS,id_SiDetpoolS
       type (type_state_variable_id)                   :: id_DAdFish,id_NAdFish,id_PAdFish,id_DJvFish
       type (type_state_variable_id)                   :: id_NH4poolW,id_PO4poolW,id_DDetpoolW,id_NDetpoolW,id_PDetpoolW
+      type (type_bottom_state_variable_id)            :: id_DDisDetpoolS,id_NDisDetpoolS, id_PDisDetpoolS,id_SiDisDetpoolS
 !     environmental dependencies
       type (type_dependency_id)                       :: id_uTm,id_dz
       type ( type_horizontal_dependency_id)           :: id_aCovVeg
@@ -73,6 +74,8 @@
       real(rk)   :: cNDDiatMax,cPDDiatMax,cNDGrenMax,cPDGrenMax,cNDBlueMax,cPDBlueMax
 !     minimum state variable values
       real(rk)   :: cDBentMin
+!     fraction of dissolved organics from zoobenthos
+      real(rk)   :: fDisBenDetS
    contains
 !     Module procedures
       procedure :: initialize
@@ -144,7 +147,8 @@
    call self%get_parameter(self%cPDDiatMax,   'cPDDiatMax',   'mgP/mgDW', 'max. P/day ratio Diatoms',                                   default=0.05_rk)
    call self%get_parameter(self%cPDGrenMax,   'cPDGrenMax',   'mgP/mgDW', 'max. P/day ratio greens',                                    default=0.015_rk)
 !  the user defined minumun value for state variables
-   call self%get_parameter(self%cDBentMin,    'cDBentMin',    'gDW/m2',   'minimun zoobenthos biomass in system',                    default=0.00001_rk)
+   call self%get_parameter(self%cDBentMin,    'cDBentMin',    'gDW/m2',   'minimun zoobenthos biomass in system',                       default=0.00001_rk)
+   call self%get_parameter(self%fDisBenDetS,  'fDisBenDetS',   '[-]',     'dissolved organic fraction from zoobenthos',                 default=0.5_rk)
 
 !  Register local state variable
    call self%register_state_variable(self%id_sDBent,'sDBent','g m-2','zoobenthos_DW',     &
@@ -191,31 +195,35 @@
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_sNBent)
    call self%add_to_aggregate_variable(standard_variables%total_phosphorus,self%id_sPBent)
 !  register state variables dependencies
-   call self%register_state_dependency(self%id_DfoodDiatS, 'Diatom_as_food_DW',        'g m-2', 'Diatom_as_food_DW')
-   call self%register_state_dependency(self%id_DfoodGrenS, 'Green_as_food_DW',         'g m-2', 'Green_as_food_DW')
-   call self%register_state_dependency(self%id_DfoodBlueS, 'Blue_as_food_DW',          'g m-2', 'Blue_as_food_DW')
-   call self%register_state_dependency(self%id_NfoodDiatS, 'Diatom_as_food_N',         'g m-2', 'Diatom_as_food_N')
-   call self%register_state_dependency(self%id_NfoodGrenS, 'Green_as_food_N',          'g m-2', 'Green_as_food_N')
-   call self%register_state_dependency(self%id_NfoodBlueS, 'Blue_as_food_N',           'g m-2', 'Blue_as_food_N')
-   call self%register_state_dependency(self%id_PfoodDiatS, 'Diatom_as_food_P',         'g m-2', 'Diatom_as_food_P')
-   call self%register_state_dependency(self%id_PfoodGrenS, 'Green_as_food_P',          'g m-2', 'Green_as_food_P')
-   call self%register_state_dependency(self%id_PfoodBlueS, 'Blue_as_food_P',           'g m-2', 'Blue_as_food_P')
-   call self%register_state_dependency(self%id_DDetpoolS,  'Detritus_DW_pool_sediment','g m-2', 'Detritus_DW_pool_sediment')
-   call self%register_state_dependency(self%id_PDetpoolS,  'Detritus_P_pool_sediment', 'g m-2', 'Detritus_P_pool_sediment')
-   call self%register_state_dependency(self%id_NDetpoolS,  'Detritus_N_pool_sediment', 'g m-2', 'Detritus_N_pool_sediment')
-   call self%register_state_dependency(self%id_SiDetpoolS, 'Detritus_Si_pool_sediment','g m-2', 'Detritus_Si_pool_sediment')
-   call self%register_state_dependency(self%id_NH4poolS,   'NH4_pool_sediment',        'g m-2', 'NH4_pool_sediment')
-   call self%register_state_dependency(self%id_NO3poolS,   'NO3_pool_sediment',        'g m-2', 'NO3_pool_sediment')
-   call self%register_state_dependency(self%id_PO4poolS,   'PO4_pool_sediment',        'g m-2', 'PO4_pool_sediment')
-   call self%register_state_dependency(self%id_DAdFish,    'Adult_fish_biomass',       'g m-3', 'Adult_fish_biomass')
-   call self%register_state_dependency(self%id_NAdFish,    'Adult_fish_nitrogen',      'g m-3', 'Adult_fish_nitrogen')
-   call self%register_state_dependency(self%id_PAdFish,    'Adult_fish_phosphorus',    'g m-3', 'Adult_fish_phosphorus')
-   call self%register_state_dependency(self%id_NH4poolW,   'NH4_pool_water',           'g m-3', 'NH4_pool_water')
-   call self%register_state_dependency(self%id_PO4poolW,   'PO4_pool_water',           'g m-3', 'PO4_pool_water')
-   call self%register_state_dependency(self%id_DDetpoolW,  'DDet_pool_water',          'g m-3', 'DDet_pool_water')
-   call self%register_state_dependency(self%id_NDetpoolW,  'NDet_pool_water',          'g m-3', 'NDet_pool_water')
-   call self%register_state_dependency(self%id_PDetpoolW,  'PDet_pool_water',          'g m-3', 'PDet_pool_water')
-   call self%register_state_dependency(self%id_DJvFish,    'Young_fish_biomass',       'g m-3', 'Young_fish_biomass')
+   call self%register_state_dependency(self%id_DfoodDiatS, 'Diatom_as_food_DW',                  'g m-2', 'Diatom_as_food_DW')
+   call self%register_state_dependency(self%id_DfoodGrenS, 'Green_as_food_DW',                   'g m-2', 'Green_as_food_DW')
+   call self%register_state_dependency(self%id_DfoodBlueS, 'Blue_as_food_DW',                    'g m-2', 'Blue_as_food_DW')
+   call self%register_state_dependency(self%id_NfoodDiatS, 'Diatom_as_food_N',                   'g m-2', 'Diatom_as_food_N')
+   call self%register_state_dependency(self%id_NfoodGrenS, 'Green_as_food_N',                    'g m-2', 'Green_as_food_N')
+   call self%register_state_dependency(self%id_NfoodBlueS, 'Blue_as_food_N',                     'g m-2', 'Blue_as_food_N')
+   call self%register_state_dependency(self%id_PfoodDiatS, 'Diatom_as_food_P',                   'g m-2', 'Diatom_as_food_P')
+   call self%register_state_dependency(self%id_PfoodGrenS, 'Green_as_food_P',                    'g m-2', 'Green_as_food_P')
+   call self%register_state_dependency(self%id_PfoodBlueS, 'Blue_as_food_P',                     'g m-2', 'Blue_as_food_P')
+   call self%register_state_dependency(self%id_DDetpoolS,  'Detritus_DW_pool_sediment',          'g m-2', 'Detritus_DW_pool_sediment')
+   call self%register_state_dependency(self%id_PDetpoolS,  'Detritus_P_pool_sediment',           'g m-2', 'Detritus_P_pool_sediment')
+   call self%register_state_dependency(self%id_NDetpoolS,  'Detritus_N_pool_sediment',           'g m-2', 'Detritus_N_pool_sediment')
+   call self%register_state_dependency(self%id_SiDetpoolS, 'Detritus_Si_pool_sediment',          'g m-2', 'Detritus_Si_pool_sediment')
+   call self%register_state_dependency(self%id_NH4poolS,   'NH4_pool_sediment',                  'g m-2', 'NH4_pool_sediment')
+   call self%register_state_dependency(self%id_NO3poolS,   'NO3_pool_sediment',                  'g m-2', 'NO3_pool_sediment')
+   call self%register_state_dependency(self%id_PO4poolS,   'PO4_pool_sediment',                  'g m-2', 'PO4_pool_sediment')
+   call self%register_state_dependency(self%id_DAdFish,    'Adult_fish_biomass',                 'g m-3', 'Adult_fish_biomass')
+   call self%register_state_dependency(self%id_NAdFish,    'Adult_fish_nitrogen',                'g m-3', 'Adult_fish_nitrogen')
+   call self%register_state_dependency(self%id_PAdFish,    'Adult_fish_phosphorus',              'g m-3', 'Adult_fish_phosphorus')
+   call self%register_state_dependency(self%id_NH4poolW,   'NH4_pool_water',                     'g m-3', 'NH4_pool_water')
+   call self%register_state_dependency(self%id_PO4poolW,   'PO4_pool_water',                     'g m-3', 'PO4_pool_water')
+   call self%register_state_dependency(self%id_DDetpoolW,  'DDet_pool_water',                    'g m-3', 'DDet_pool_water')
+   call self%register_state_dependency(self%id_NDetpoolW,  'NDet_pool_water',                    'g m-3', 'NDet_pool_water')
+   call self%register_state_dependency(self%id_PDetpoolW,  'PDet_pool_water',                    'g m-3', 'PDet_pool_water')
+   call self%register_state_dependency(self%id_DJvFish,    'Young_fish_biomass',                 'g m-3', 'Young_fish_biomass')
+   call self%register_state_dependency(self%id_DDisDetpoolS, 'Dissolved_detritus_DW_sediment',   'g m-2', 'Dissolved_detritus_DW_sediment')
+   call self%register_state_dependency(self%id_NDisDetpoolS, 'Dissolved_detritus_N_sediment',    'g m-2', 'Dissolved_detritus_N_sediment')
+   call self%register_state_dependency(self%id_PDisDetpoolS, 'Dissolved_detritus_P_sediment',    'g m-2', 'Dissolved_detritus_P_sediment')
+   call self%register_state_dependency(self%id_SiDisDetpoolS,'Dissolved_detritus_Si_sediment',   'g m-2', 'Dissolved_detritus_Si_sediment')
 !  register diagnostic dependencies
    call self%register_dependency(self%id_aCovVeg,          'Vegetation_coverage',       '[-]',  'Vegetation_coverage')
 !  register environmental dependencies
@@ -281,6 +289,8 @@
    real(rk)          :: tDBenDetS,tDEgesBent,tNBenDetS,tNEgesBentDet
    real(rk)          :: tNMortBentDet,tPBenDetS,tPEgesBentDet,tPMortBentDet
    real(rk)          :: tSiBenDetS,tSiConsDiatBent
+   real(rk)          :: tDBenDetS_tot,tNBenDetS_tot,tPBenDetS_tot,tSiBenDetS_tot
+   real(rk)          :: tDBenDisDetS,tNBenDisDetS,tPBenDisDetS,tSiBenDisDetS
 !  variables for exchange for diatom
    real(rk)          :: tDBenDiatS,tNBenDiatS,tPBenDiatS
 !  variables for exchange for green algae
@@ -604,23 +614,30 @@
 !  Update detritus in sediment(DW,N,P)
 !-----------------------------------------------------------------------
 !  total_flux_of_DW_in_Sediment_detritus_in_lake
-   tDBenDetS = - tDConsDetBent + tDEgesBent + tDMortBent
+   tDBenDetS_tot = - tDConsDetBent + tDEgesBent + tDMortBent
+   tDBenDetS = tDBenDetS_tot * (1.0_rk -self%fDisBenDetS)
+   tDBenDisDetS = tDBenDetS_tot * self%fDisBenDetS
 !  part_of_died_zoobenthos_N_becoming_detrital_N
    tNMortBentDet = (1.0_rk-self%fDissMortBent)*tNMortBent
 !  detrital_N_egestion_of_zoobenthos
    tNEgesBentDet = (1.0_rk - self%fDissEgesBent) * tNEgesBent
 !  total_flux_of_N_in_Sediment_N_in_lake_sediment
-   tNBenDetS = - tNConsDetBent + tNEgesBentDet + tNMortBentDet
+   tNBenDetS_tot = - tNConsDetBent + tNEgesBentDet + tNMortBentDet
+   tNBenDetS = tNBenDetS_tot * (1.0_rk -self%fDisBenDetS)
+   tNBenDisDetS = tNBenDetS_tot * self%fDisBenDetS
 !  part_of_died_zoobenthos_P_becoming_detrital_P
    tPMortBentDet = (1.0_rk-self%fDissMortBent)*tPMortBent
 !  detrital_P_egestion_of_zoobenthos
    tPEgesBentDet = (1.0_rk - self%fDissEgesBent) * tPEgesBent
 !  total_flux_of_P_in_Sediment_P_in_lake
-   tPBenDetS = - tPConsDetBent + tPEgesBentDet + tPMortBentDet
+   tPBenDetS_tot = - tPConsDetBent + tPEgesBentDet + tPMortBentDet
+   tPBenDetS = tPBenDetS_tot * (1.0_rk -self%fDisBenDetS)
+   tPBenDisDetS = tPBenDetS_tot * self%fDisBenDetS
 !  diatom_consumption_by_zoobenthos
    tSiConsDiatBent = self%cSiDDiat * tDConsDiatBent
 !  total_flux_of_silica_in_sediment_detritus
-   tSiBenDetS = tSiConsDiatBent
+   tSiBenDetS = tSiConsDiatBent * (1.0_rk - self%fDisBenDetS)
+   tSiBenDisDetS = tSiConsDiatBent * self%fDisBenDetS
 !-----------------------------------------------------------------------
 !  Update diatom in sediment(DW,N,P)
 !-----------------------------------------------------------------------
@@ -659,13 +676,17 @@
 !  Update external links
 !-----------------------------------------------------------------------
 !  update abiotic variables in sediment
-   _SET_ODE_BEN_(self%id_NH4poolS,   tNBenNH4S)
-   _SET_ODE_BEN_(self%id_NO3poolS,   tNBenNO3S)
-   _SET_ODE_BEN_(self%id_PO4poolS,   tPBenPO4S)
-   _SET_ODE_BEN_(self%id_DDetpoolS,  tDBenDetS)
-   _SET_ODE_BEN_(self%id_NDetpoolS,  tNBenDetS)
-   _SET_ODE_BEN_(self%id_PDetpoolS,  tPBenDetS)
-   _SET_ODE_BEN_(self%id_SiDetpoolS, tSiBenDetS)
+   _SET_ODE_BEN_(self%id_NH4poolS,     tNBenNH4S)
+   _SET_ODE_BEN_(self%id_NO3poolS,     tNBenNO3S)
+   _SET_ODE_BEN_(self%id_PO4poolS,     tPBenPO4S)
+   _SET_ODE_BEN_(self%id_DDetpoolS,    tDBenDetS)
+   _SET_ODE_BEN_(self%id_NDetpoolS,    tNBenDetS)
+   _SET_ODE_BEN_(self%id_PDetpoolS,    tPBenDetS)
+   _SET_ODE_BEN_(self%id_SiDetpoolS,   tSiBenDetS)
+   _SET_ODE_BEN_(self%id_DDisDetpoolS, tDBenDisDetS)
+   _SET_ODE_BEN_(self%id_NDisDetpoolS, tNBenDisDetS)
+   _SET_ODE_BEN_(self%id_PDisDetpoolS, tPBenDisDetS)
+   _SET_ODE_BEN_(self%id_SiDisDetpoolS,tSiBenDisDetS)
 !  update phytoplanktons in sediment
    _SET_ODE_BEN_(self%id_DfoodDiatS, tDBenDiatS)
    _SET_ODE_BEN_(self%id_NfoodDiatS, tNBenDiatS)

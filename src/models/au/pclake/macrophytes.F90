@@ -51,9 +51,11 @@
 
 !     state dependencies identifiers
       type (type_state_variable_id)                :: id_NH4poolW,id_NO3poolW,id_PO4poolW,id_O2poolW
-      type (type_state_variable_id)                :: id_DDetpoolW,id_DNetpoolW,id_DPetpoolW
+      type (type_state_variable_id)                :: id_DDetpoolW,id_NDetpoolW,id_PDetpoolW
       type (type_bottom_state_variable_id)         :: id_NH4poolS,id_NO3poolS,id_PO4poolS
-      type (type_bottom_state_variable_id)         :: id_DDetpoolS,id_DNetpoolS,id_DPetpoolS
+      type (type_bottom_state_variable_id)         :: id_DDetpoolS,id_NDetpoolS,id_PDetpoolS
+      type (type_state_variable_id)                :: id_DDisDetpoolW,id_NDisDetpoolW,id_PDisDetpoolW
+      type (type_bottom_state_variable_id)         :: id_DDisDetpoolS,id_NDisDetpoolS,id_PDisDetpoolS
 !     environmental dependencies
       type (type_global_dependency_id)         :: id_Day
       type (type_dependency_id)                :: id_uTm,id_extc,id_dz
@@ -90,6 +92,8 @@
      real(rk)   :: cHeightVeg
 !    minimun state variable vaules
      real(rk)   :: cDVegMin, cNVegMin,cPVegMin
+!    fraction of dissolved organics from macrophytes
+     real(rk)   :: fDisVegDetW,fDisVegDetS
    contains
 
 !     Model procedure
@@ -177,6 +181,8 @@
    call self%get_parameter(self%cExtSpVeg,     'cExtSpVeg',      'm2/gDW',              'specific extinction',                                                                                     default=0.01_rk)
 !  the user defined minumun value for state variables
    call self%get_parameter(self%cDVegMin,      'cDVegMin',        'gDW/m2',             'minimun dry-weight macrophytes in system',                                                                default=0.00001_rk)
+   call self%get_parameter(self%fDisVegDetS,  'fDisVegDetS',      '[-]',                'dissolved organic fraction from benthic macrophytes',                                                     default=0.5_rk)
+   call self%get_parameter(self%fDisVegDetW,  'fDisVegDetW',      '[-]',                'dissolved organic fraction from pelagic macrophytes',                                                     default=0.5_rk)
 !  Register local state variable
    call self%register_state_variable(self%id_sDVeg,'sDVeg','g m-2','vegetation_dry_weight',    &
                                     initial_value=1.0_rk,minimum=self%cDVegMin)
@@ -218,19 +224,25 @@
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,  self%id_sNVeg)
    call self%add_to_aggregate_variable(standard_variables%total_phosphorus,self%id_sPVeg)
 !  register state variables dependencies
-   call self%register_state_dependency(self%id_NH4poolW,  'Ammonium_pool_water',      'g m-3', 'Ammonium pool for nutrient uptake')
-   call self%register_state_dependency(self%id_NO3poolW,  'Nitrate_pool_water',       'g m-3', 'Nitrate pool for nutrient uptake')
-   call self%register_state_dependency(self%id_PO4poolW,  'Phosphate_pool_water',     'g m-3', 'Phosphate pool for nutrient uptake')
-   call self%register_state_dependency(self%id_O2poolW,   'Oxygen_pool_water',        'g m-3', 'Oxygen pool in water')
-   call self%register_state_dependency(self%id_DDetpoolW, 'Detritus_DW_pool_water',   'g m-3', 'Detritus_DW_pool_water')
-   call self%register_state_dependency(self%id_DNetpoolW, 'Detritus_N_pool_water',    'g m-3', 'Detritus_N_pool_water')
-   call self%register_state_dependency(self%id_DPetpoolW, 'Detritus_P_pool_water',    'g m-3', 'Detritus_P_pool_water')
-   call self%register_state_dependency(self%id_NH4poolS,  'Ammonium_pool_sediment',   'g m-2', 'Ammonium pool for nutrient uptake')
-   call self%register_state_dependency(self%id_NO3poolS,  'Nitrate_pool_sediment',    'g m-2', 'Nitrate pool for nutrient uptake')
-   call self%register_state_dependency(self%id_PO4poolS,  'Phosphate_pool_sediment',  'g m-2', 'Phosphate pool for nutrient uptake')
-   call self%register_state_dependency(self%id_DDetpoolS, 'Detritus_DW_pool_sediment','g m-2', 'Detritus_DW_pool_sediment')
-   call self%register_state_dependency(self%id_DNetpoolS, 'Detritus_N_pool_sediment', 'g m-2', 'Detritus_N_pool_sediment')
-   call self%register_state_dependency(self%id_DPetpoolS, 'Detritus_P_pool_sediment', 'g m-2', 'Detritus_P_pool_sediment')
+   call self%register_state_dependency(self%id_NH4poolW,     'Ammonium_pool_water',              'g m-3', 'Ammonium pool for nutrient uptake')
+   call self%register_state_dependency(self%id_NO3poolW,     'Nitrate_pool_water',               'g m-3', 'Nitrate pool for nutrient uptake')
+   call self%register_state_dependency(self%id_PO4poolW,     'Phosphate_pool_water',             'g m-3', 'Phosphate pool for nutrient uptake')
+   call self%register_state_dependency(self%id_O2poolW,      'Oxygen_pool_water',                'g m-3', 'Oxygen pool in water')
+   call self%register_state_dependency(self%id_DDetpoolW,    'Detritus_DW_pool_water',           'g m-3', 'Detritus_DW_pool_water')
+   call self%register_state_dependency(self%id_NDetpoolW,    'Detritus_N_pool_water',            'g m-3', 'Detritus_N_pool_water')
+   call self%register_state_dependency(self%id_PDetpoolW,    'Detritus_P_pool_water',            'g m-3', 'Detritus_P_pool_water')
+   call self%register_state_dependency(self%id_NH4poolS,     'Ammonium_pool_sediment',           'g m-2', 'Ammonium pool for nutrient uptake')
+   call self%register_state_dependency(self%id_NO3poolS,     'Nitrate_pool_sediment',            'g m-2', 'Nitrate pool for nutrient uptake')
+   call self%register_state_dependency(self%id_PO4poolS,     'Phosphate_pool_sediment',          'g m-2', 'Phosphate pool for nutrient uptake')
+   call self%register_state_dependency(self%id_DDetpoolS,    'Detritus_DW_pool_sediment',        'g m-2', 'Detritus_DW_pool_sediment')
+   call self%register_state_dependency(self%id_NDetpoolS,    'Detritus_N_pool_sediment',         'g m-2', 'Detritus_N_pool_sediment')
+   call self%register_state_dependency(self%id_PDetpoolS,    'Detritus_P_pool_sediment',         'g m-2', 'Detritus_P_pool_sediment')
+   call self%register_state_dependency(self%id_DDisDetpoolW, 'Dissolved_detritus_DW_water',      'g m-3', 'Dissolved_detritus_DW_water')
+   call self%register_state_dependency(self%id_NDisDetpoolW, 'Dissolved_detritus_N_water',       'g m-3', 'Dissolved_detritus_N_water')
+   call self%register_state_dependency(self%id_PDisDetpoolW, 'Dissolved_detritus_P_water',       'g m-3', 'Dissolved_detritus_P_water')
+   call self%register_state_dependency(self%id_DDisDetpoolS, 'Dissolved_detritus_DW_sediment',   'g m-2', 'Dissolved_detritus_DW_sediment')
+   call self%register_state_dependency(self%id_NDisDetpoolS, 'Dissolved_detritus_N_sediment',    'g m-2', 'Dissolved_detritus_N_sediment')
+   call self%register_state_dependency(self%id_PDisDetpoolS, 'Dissolved_detritus_P_sediment',    'g m-2', 'Dissolved_detritus_P_sediment')
 !------------------------------------------------------------------------------------------------------------
 !  register diagnostic dependencies
 !------------------------------------------------------------------------------------------------------------
@@ -331,6 +343,11 @@
    real(rk)   :: tDBedDetS,tDMortVegS
    real(rk)   :: tNBedDetS,tNMortVegS,tNMortVegDetS
    real(rk)   :: tPBedDetS,tPMortVegS,tPMortVegDetS
+!  Dissolved detritus in sediment
+   real(rk)   :: tDBedDisDetS,tNBedDisDetS,tPBedDisDetS
+   real(rk)   :: wDBedDisDetW,wNBedDisDetW,wPBedDisDetW
+   real(rk)   :: wDBedDetW_tot,wNBedDetW_tot,wPBedDetW_tot
+
 !feh, July 4th, 2016
 !  n for total step counter, t for time step counter, i for output
 !  for dataframe indext !  j is day counter
@@ -757,34 +774,43 @@ integer :: nlev
 !  mortality_flux_becoming_water_detritus
    tDMortVegW = self%fDetWMortVeg * (1.0_rk - bfRootVeg) * tDMortVeg
 !  total_DW_flux_from_Vegetation_module_to_water_detritus
-   wDBedDetW = tDMortVegW
+   wDBedDetW_tot = tDMortVegW
+   wDBedDetW = wDBedDetW_tot * (1.0_rk - self%fDisVegDetW)
+   wDBedDisDetW = wDBedDetW_tot * self%fDisVegDetW
 !  mortality_flux_of_vegetation_becoming_detritus_N
    tNMortVegDet = tNMortVeg - tNMortVegNH4
 !  mortality_flux_of_vegetation_becoming_detritus_N_in_water
    tNMortVegDetW = self%fDetWMortVeg * (1.0_rk - bfRootVeg) * tNMortVegDet
 !  total_N_flux_from_Vegetation_module_to_water_detritus
-   wNBedDetW = tNMortVegDetW
+   wNBedDetW_tot = tNMortVegDetW
+   wNBedDetW = wNBedDetW_tot * (1.0_rk - self%fDisVegDetW)
+   wNBedDisDetW = wNBedDetW_tot * self%fDisVegDetW
 !  mortality_flux_of_vegetation_becoming_detritus_P
    tPMortVegDet = tPMortVeg - tPMortVegPO4
 !  mortality_flux_of_vegetation_becoming_detritus_P_in_water
    tPMortVegDetW = self%fDetWMortVeg * (1.0_rk - bfRootVeg) * tPMortVegDet
 !  total_P_flux_from_Vegetation_module_to_water_detritus
-   wPBedDetW = tPMortVegDetW
+   wPBedDetW_tot = tPMortVegDetW
+   wPBedDetW = wPBedDetW_tot * (1.0_rk - self%fDisVegDetW)
+   wPBedDisDetW = wPBedDetW_tot * self%fDisVegDetW
 !---------------------------------------------------------------------------
 !  Update detritus  in sediment, DW, N and P
 !---------------------------------------------------------------------------
 !  mortality_flux_becoming_sediment_detritus
    tDMortVegS = tDMortVeg - tDMortVegW
 !  total_DW_flux_from_Vegetation_module_to_sediment_detritus
-   tDBedDetS = tDMortVegS
+   tDBedDetS = tDMortVegS * (1.0_rk - self%fDisVegDetS)
+   tDBedDisDetS = tDMortVegS * self%fDisVegDetS
 !  mortality_flux_of_vegetation_becoming_detritus_N_in_sediment
    tNMortVegDetS = tNMortVegDet - tNMortVegDetW
 !  total_N_flux_from_Vegetation_module_to_sediment_detritus
-   tNBedDetS = tNMortVegDetS
+   tNBedDetS = tNMortVegDetS* (1.0_rk - self%fDisVegDetS)
+   tNBedDisDetS = tNMortVegDetS * self%fDisVegDetS
 !  mortality_flux_of_vegetation_becoming_detritus_P_in_sediment
    tPMortVegDetS = tPMortVegDet - tPMortVegDetW
 !  total_P_flux_from_Vegetation_module_to_sediment_detritus
-   tPBedDetS = tPMortVegDetS
+   tPBedDetS = tPMortVegDetS * (1.0_rk - self%fDisVegDetS)
+   tPBedDisDetS = tPMortVegDetS * self%fDisVegDetS
 !-----------------------------------------------------------------------
 !  Update local state variables
 !-----------------------------------------------------------------------
@@ -803,15 +829,21 @@ integer :: nlev
    _SET_BOTTOM_EXCHANGE_(self%id_PO4poolW,wPBedPO4W)
    _SET_BOTTOM_EXCHANGE_(self%id_O2poolW,tO2BedW)
    _SET_BOTTOM_EXCHANGE_(self%id_DDetpoolW,wDBedDetW)
-   _SET_BOTTOM_EXCHANGE_(self%id_DNetpoolW,wNBedDetW)
-   _SET_BOTTOM_EXCHANGE_(self%id_DPetpoolW,wPBedDetW)
+   _SET_BOTTOM_EXCHANGE_(self%id_NDetpoolW,wNBedDetW)
+   _SET_BOTTOM_EXCHANGE_(self%id_PDetpoolW,wPBedDetW)
+   _SET_BOTTOM_EXCHANGE_(self%id_DDisDetpoolW,wDBedDisDetW)
+   _SET_BOTTOM_EXCHANGE_(self%id_NDisDetpoolW,wNBedDisDetW)
+   _SET_BOTTOM_EXCHANGE_(self%id_PDisDetpoolW,wPBedDisDetW)
 !  in the sediment
    _SET_ODE_BEN_(self%id_NH4poolS,tNBedNH4S)
    _SET_ODE_BEN_(self%id_NO3poolS,tNBedNO3S)
    _SET_ODE_BEN_(self%id_PO4poolS,tPBedPO4S)
    _SET_ODE_BEN_(self%id_DDetpoolS,tDBedDetS)
-   _SET_ODE_BEN_(self%id_DNetpoolS,tNBedDetS)
-   _SET_ODE_BEN_(self%id_DPetpoolS,tPBedDetS)
+   _SET_ODE_BEN_(self%id_NDetpoolS,tNBedDetS)
+   _SET_ODE_BEN_(self%id_PDetpoolS,tPBedDetS)
+   _SET_ODE_BEN_(self%id_DDisDetpoolS,tDBedDisDetS)
+   _SET_ODE_BEN_(self%id_NDisDetpoolS,tNBedDisDetS)
+   _SET_ODE_BEN_(self%id_PDisDetpoolS,tPBedDisDetS)
 !-----------------------------------------------------------------------
 !  output diagnostic variables for external links
 !-----------------------------------------------------------------------

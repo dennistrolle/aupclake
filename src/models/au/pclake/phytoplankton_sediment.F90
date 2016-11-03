@@ -66,7 +66,8 @@
 !     state dependencies identifiers
      type (type_bottom_state_variable_id) :: id_PO4poolS,id_NO3poolS,id_NH4poolS
      type (type_bottom_state_variable_id) :: id_DDetpoolS,id_NDetpoolS,id_PDetpoolS,id_SiDetpoolS
-     type (type_state_variable_id) :: id_SiO2poolW
+     type (type_bottom_state_variable_id) :: id_DDisDetpoolS,id_NDisDetpoolS,id_PDisDetpoolS,id_SiDisDetpoolS
+     type (type_state_variable_id)        :: id_SiO2poolW
 !     environmental dependencies
       type (type_dependency_id)                :: id_uTm,id_dz
 !     Model parameters
@@ -82,6 +83,8 @@
       real(rk)   :: fDissMortPhyt,cSiDDiat
 !     minimum state variable values
       real(rk)   :: cDBlueMinS,cDGrenMinS,cDDiatMinS
+!     fraction of dissolved detritus from phytoplankton
+      real(rk)   :: fDisPrimDetS
 
 
    contains
@@ -153,6 +156,7 @@
    call self%get_parameter(self%cDBlueMinS,   'cDBlueMinS',   'gDW/m2',   'minimun blue-green algae biomass in system',                default=0.00001_rk)
    call self%get_parameter(self%cDGrenMinS,   'cDGrenMinS',   'gDW/m2',   'minimun green algae biomass in system',                     default=0.00001_rk)
    call self%get_parameter(self%cDDiatMinS,   'cDDiatMinS',   'gDW/m2',   'minimun diatom biomass in system',                          default=0.00001_rk)
+   call self%get_parameter(self%fDisPrimDetS, 'fDisPrimDetS', '[-]',      'fraction of dissolved organics from sediment phytoplankton',default=0.5_rk)
 
 !  Register local state variable
    call self%register_state_variable(self%id_sDDiatS,'sDDiatS','g m-2','diatom_D in sediment',     &
@@ -209,14 +213,18 @@
 !   call self%add_to_aggregate_variable(standard_variables%total_silicate,  self%id_oSiDiatS)
 
 !  register state variables dependencies
-   call self%register_state_dependency(self%id_PO4poolS,  'PO4_pool_sediment',        'g m-2', 'PO4_pool_sediment')
-   call self%register_state_dependency(self%id_NO3poolS,  'NO3_pool_sediment',        'g m-2', 'NO3_pool_sediment')
-   call self%register_state_dependency(self%id_NH4poolS,  'NH4_pool_sediment',        'g m-2', 'NH4_pool_sediment')
-   call self%register_state_dependency(self%id_DDetpoolS, 'Detritus_DW_pool_sediment','g m-2', 'Detritus_DW_pool_sediment')
-   call self%register_state_dependency(self%id_NDetpoolS, 'Detritus_N_pool_sediment', 'g m-2', 'Detritus_N_pool_sediment')
-   call self%register_state_dependency(self%id_PDetpoolS, 'Detritus_P_pool_sediment', 'g m-2', 'Detritus_P_pool_sediment')
-   call self%register_state_dependency(self%id_SiDetpoolS,'Detritus_Si_pool_sediment','g m-2', 'Detritus_Si_pool_sediment')
-   call self%register_state_dependency(self%id_SiO2poolW, 'SiO2_pool_water',          'g m-3', 'SiO2_pool_water')
+   call self%register_state_dependency(self%id_PO4poolS,     'PO4_pool_sediment',                'g m-2', 'PO4_pool_sediment')
+   call self%register_state_dependency(self%id_NO3poolS,     'NO3_pool_sediment',                'g m-2', 'NO3_pool_sediment')
+   call self%register_state_dependency(self%id_NH4poolS,     'NH4_pool_sediment',                'g m-2', 'NH4_pool_sediment')
+   call self%register_state_dependency(self%id_DDetpoolS,    'Detritus_DW_pool_sediment',        'g m-2', 'Detritus_DW_pool_sediment')
+   call self%register_state_dependency(self%id_NDetpoolS,    'Detritus_N_pool_sediment',         'g m-2', 'Detritus_N_pool_sediment')
+   call self%register_state_dependency(self%id_PDetpoolS,    'Detritus_P_pool_sediment',         'g m-2', 'Detritus_P_pool_sediment')
+   call self%register_state_dependency(self%id_SiDetpoolS,   'Detritus_Si_pool_sediment',        'g m-2', 'Detritus_Si_pool_sediment')
+   call self%register_state_dependency(self%id_SiO2poolW,    'SiO2_pool_water',                  'g m-3', 'SiO2_pool_water')
+   call self%register_state_dependency(self%id_DDisDetpoolS, 'Dissolved_detritus_DW_sediment',   'g m-2', 'Dissolved_detritus_DW_sediment')
+   call self%register_state_dependency(self%id_NDisDetpoolS, 'Dissolved_detritus_N_sediment',    'g m-2', 'Dissolved_detritus_N_sediment')
+   call self%register_state_dependency(self%id_PDisDetpoolS, 'Dissolved_detritus_P_sediment',    'g m-2', 'Dissolved_detritus_P_sediment')
+   call self%register_state_dependency(self%id_SiDisDetpoolS,'Dissolved_detritus_Si_sediment',   'g m-2', 'Dissolved_detritus_Si_sediment')
 
 
    call self%register_dependency(self%id_uTm,standard_variables%temperature)
@@ -280,9 +288,8 @@
    real(rk)   :: tNPrimDetS,tNMortPhytDetS
    real(rk)   :: tPPrimDetS,tPMortPhytDetS
    real(rk)   :: tSiPrimDetS,tSiMortDiatS
-   real(rk)   :: tSiExcrDiatS
-
-
+   real(rk)   :: tSiExcrDiatS,tSiPrimDisDetS
+   real(rk)   :: tDPrimDisDetS,tNPrimDisDetS,tPPrimDisDetS
 !  Enter spatial loops (if any)
    _FABM_HORIZONTAL_LOOP_BEGIN_
 !-----------------------------------------------------------------------
@@ -471,28 +478,32 @@
 !  mortality_of_algae_on_bottom
    tDMortPhytS = tDMortDiatS + tDMortGrenS + tDMortBlueS
 !  Flux_to_sediment_detritus
-   tDPrimDetS = tDMortPhytS
+   tDPrimDetS = tDMortPhytS * (1.0_rk - self%fDisPrimDetS)
+   tDPrimDisDetS = tDMortPhytS * self%fDisPrimDetS
 !-----------------------------------------------------------------------
 !  sNDetS exchange
 !-----------------------------------------------------------------------
 !  detrital_N_flux_from_died_Algae
    tNMortPhytDetS = tNMortPhytS - tNMortPhytNH4S
-!  Sediment_detritus
-   tNPrimDetS = tNMortPhytDetS
+!  Flux_to_sediment_detritus
+   tNPrimDetS = tNMortPhytDetS * (1.0_rk - self%fDisPrimDetS)
+   tNPrimDisDetS = tNMortPhytDetS * self%fDisPrimDetS
 !-----------------------------------------------------------------------
 !  sPDetS exchange
 !-----------------------------------------------------------------------
 !  detrital_P_flux_from_died_Algae
    tPMortPhytDetS = tPMortPhytS - tPMortPhytPO4S
-!  Sediment_detritus
-   tPPrimDetS = tPMortPhytDetS
+!  Flux_to_sediment_detritus
+   tPPrimDetS = tPMortPhytDetS * (1.0_rk - self%fDisPrimDetS)
+   tPPrimDisDetS = tPMortPhytDetS * self%fDisPrimDetS
 !-----------------------------------------------------------------------
 !  sSiDetS exchange
 !-----------------------------------------------------------------------
 !  mortality_of_bottom_Algae
    tSiMortDiatS = self%cSiDDiat * tDMortDiatS
 !  Sediment_detritus
-   tSiPrimDetS = tSiMortDiatS
+   tSiPrimDetS = tSiMortDiatS* (1.0_rk - self%fDisPrimDetS)
+   tSiPrimDisDetS = tSiMortDiatS * self%fDisPrimDetS
 !-----------------------------------------------------------------------
 !  sSiO2W exchange
 !-----------------------------------------------------------------------
@@ -525,6 +536,10 @@
    _SET_ODE_BEN_(self%id_PDetpoolS,         tPPrimDetS)
    _SET_ODE_BEN_(self%id_SiDetpoolS,        tSiPrimDetS)
    _SET_BOTTOM_EXCHANGE_(self%id_SiO2poolW, tSiExcrDiatS)
+   _SET_ODE_BEN_(self%id_DDisDetpoolS,      tDPrimDisDetS)
+   _SET_ODE_BEN_(self%id_NDisDetpoolS,      tNPrimDisDetS)
+   _SET_ODE_BEN_(self%id_PDisDetpoolS,      tPPrimDisDetS)
+   _SET_ODE_BEN_(self%id_SiDisDetpoolS,     tSiPrimDisDetS)
 !-----------------------------------------------------------------------
 !  Output dependent diagnostic variables for other modules
 !-----------------------------------------------------------------------
