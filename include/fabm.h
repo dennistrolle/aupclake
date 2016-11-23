@@ -1,3 +1,6 @@
+! This pre-processor macro shall be removed when v1.0 has been released
+#define _FABM_BGC_BACKWARD_COMPATIBILITY_
+
 #ifndef _FABM_REAL_KIND_
 #  define _FABM_REAL_KIND_ selected_real_kind(13)
 #endif
@@ -254,8 +257,8 @@
 #define _ARGUMENTS_CHECK_STATE_ _ARGUMENTS_INTERIOR_,repair,valid,set_interior
 #define _ARGUMENTS_CHECK_SURFACE_STATE_ _ARGUMENTS_HORIZONTAL_,repair,valid,set_horizontal,set_interior
 #define _ARGUMENTS_CHECK_BOTTOM_STATE_ _ARGUMENTS_HORIZONTAL_,repair,valid,set_horizontal,set_interior
-#define _ARGUMENTS_INITIALIZE_STATE_ _ARGUMENTS_INTERIOR_
-#define _ARGUMENTS_INITIALIZE_HORIZONTAL_STATE_ _ARGUMENTS_HORIZONTAL_
+#define _ARGUMENTS_INITIALIZE_STATE_ _ARGUMENTS_INTERIOR_,set_interior
+#define _ARGUMENTS_INITIALIZE_HORIZONTAL_STATE_ _ARGUMENTS_HORIZONTAL_,set_horizontal
 
 ! For BGC models: Declaration of FABM arguments to routines implemented by biogeochemical models.
 #define _DECLARE_ARGUMENTS_DO_  _DECLARE_ARGUMENTS_INTERIOR_
@@ -272,8 +275,8 @@
 #define _DECLARE_ARGUMENTS_CHECK_STATE_ _DECLARE_ARGUMENTS_INTERIOR_;logical,intent(in) :: repair;logical,intent(inout) :: valid,set_interior
 #define _DECLARE_ARGUMENTS_CHECK_SURFACE_STATE_ _DECLARE_ARGUMENTS_HORIZONTAL_;logical,intent(in) :: repair;logical,intent(inout) :: valid,set_horizontal,set_interior
 #define _DECLARE_ARGUMENTS_CHECK_BOTTOM_STATE_ _DECLARE_ARGUMENTS_HORIZONTAL_;logical,intent(in) :: repair;logical,intent(inout) :: valid,set_horizontal,set_interior
-#define _DECLARE_ARGUMENTS_INITIALIZE_STATE_ _DECLARE_ARGUMENTS_INTERIOR_
-#define _DECLARE_ARGUMENTS_INITIALIZE_HORIZONTAL_STATE_ _DECLARE_ARGUMENTS_HORIZONTAL_
+#define _DECLARE_ARGUMENTS_INITIALIZE_STATE_ _DECLARE_ARGUMENTS_INTERIOR_;logical,intent(inout) :: set_interior
+#define _DECLARE_ARGUMENTS_INITIALIZE_HORIZONTAL_STATE_ _DECLARE_ARGUMENTS_HORIZONTAL_;logical,intent(inout) :: set_horizontal
 
 ! For BGC models: Expressions for setting space-dependent FABM variables defined on the full spatial domain.
 #define _SET_ODE_(variable,value) environment%scratch _INDEX_SLICE_PLUS_1_(variable%sms_index) = environment%scratch _INDEX_SLICE_PLUS_1_(variable%sms_index) + (value)/self%dt
@@ -373,12 +376,14 @@
 #define _FABM_HORIZONTAL_LOOP_END_ _HORIZONTAL_LOOP_END_
 
 ! Constants related to floating point precision; used throughout FABM.
+#ifdef _FABM_BGC_BACKWARD_COMPATIBILITY_
 #undef REALTYPE
 #undef _ZERO_
 #undef _ONE_
 #define REALTYPE real(rk)
 #define _ZERO_ 0._rk
 #define _ONE_  1._rk
+#endif
 
 ! For backward compatibility only [pre Fortran 2003]:
 #define _CLASS_ class

@@ -3011,6 +3011,7 @@ end subroutine deallocate_prefetch_vertical
    type (type_environment)               :: environment
    integer                               :: ivar,read_index
    type (type_model_list_node), pointer  :: node
+   logical                               :: set_interior
    _DECLARE_INTERIOR_INDICES_
 !
 !EOP
@@ -3030,16 +3031,19 @@ end subroutine deallocate_prefetch_vertical
    end do
 
    ! Allow biogeochemical models to initialize their interior state.
+   set_interior = .false.
    node => self%models%first
    do while (associated(node))
-      call node%model%initialize_state(_ARGUMENTS_INTERIOR_)
+      call node%model%initialize_state(_ARGUMENTS_INTERIOR_,set_interior)
       node => node%next
    end do
 
    ! Copy from prefetch back to global data store.
    do ivar=1,size(self%state_variables)
       read_index = self%state_variables(ivar)%globalid%read_index
-      _UNPACK_TO_GLOBAL_(environment%prefetch,read_index,self%data(read_index)%p,environment%mask,self%state_variables(ivar)%missing_value)
+      if (self%interior_data_sources(read_index)==data_source_fabm) then
+         _UNPACK_TO_GLOBAL_(environment%prefetch,read_index,self%data(read_index)%p,environment%mask,self%state_variables(ivar)%missing_value)
+      end if
    end do
 
    call deallocate_prefetch(self,self%generic_environment,environment _ARGUMENTS_INTERIOR_IN_)
@@ -3063,6 +3067,7 @@ end subroutine deallocate_prefetch_vertical
    type (type_environment)               :: environment
    integer                               :: ivar,read_index
    type (type_model_list_node), pointer  :: node
+   logical                               :: set_horizontal
    _DECLARE_HORIZONTAL_INDICES_
 !
 !EOP
@@ -3083,16 +3088,19 @@ end subroutine deallocate_prefetch_vertical
    end do
 
    ! Allow biogeochemical models to initialize their bottom state.
+   set_horizontal = .false.
    node => self%models%first
    do while (associated(node))
-      call node%model%initialize_bottom_state(_ARGUMENTS_HORIZONTAL_)
+      call node%model%initialize_bottom_state(_ARGUMENTS_HORIZONTAL_,set_horizontal)
       node => node%next
    end do
 
    ! Copy from prefetch back to global data store.
    do ivar=1,size(self%bottom_state_variables)
       read_index = self%bottom_state_variables(ivar)%globalid%read_index
-      _HORIZONTAL_UNPACK_TO_GLOBAL_(environment%prefetch_hz,read_index,self%data_hz(read_index)%p,environment%mask,self%bottom_state_variables(ivar)%missing_value)
+      if (self%horizontal_data_sources(read_index)==data_source_fabm) then
+         _HORIZONTAL_UNPACK_TO_GLOBAL_(environment%prefetch_hz,read_index,self%data_hz(read_index)%p,environment%mask,self%bottom_state_variables(ivar)%missing_value)
+      end if
    end do
 
    call deallocate_prefetch_horizontal(self,self%generic_environment,environment _ARGUMENTS_HORIZONTAL_IN_)
@@ -3116,6 +3124,7 @@ end subroutine deallocate_prefetch_vertical
    type (type_environment)               :: environment
    integer                               :: ivar,read_index
    type (type_model_list_node), pointer  :: node
+   logical                               :: set_horizontal
    _DECLARE_HORIZONTAL_INDICES_
 !
 !EOP
@@ -3136,16 +3145,19 @@ end subroutine deallocate_prefetch_vertical
    end do
 
    ! Allow biogeochemical models to initialize their surface state.
+   set_horizontal = .false.
    node => self%models%first
    do while (associated(node))
-      call node%model%initialize_surface_state(_ARGUMENTS_HORIZONTAL_)
+      call node%model%initialize_surface_state(_ARGUMENTS_HORIZONTAL_,set_horizontal)
       node => node%next
    end do
 
    ! Copy from prefetch back to global data store.
    do ivar=1,size(self%surface_state_variables)
       read_index = self%surface_state_variables(ivar)%globalid%read_index
-      _HORIZONTAL_UNPACK_TO_GLOBAL_(environment%prefetch_hz,read_index,self%data_hz(read_index)%p,environment%mask,self%surface_state_variables(ivar)%missing_value)
+      if (self%horizontal_data_sources(read_index)==data_source_fabm) then
+         _HORIZONTAL_UNPACK_TO_GLOBAL_(environment%prefetch_hz,read_index,self%data_hz(read_index)%p,environment%mask,self%surface_state_variables(ivar)%missing_value)
+      end if
    end do
 
    call deallocate_prefetch_horizontal(self,self%generic_environment,environment _ARGUMENTS_HORIZONTAL_IN_)
@@ -3378,7 +3390,9 @@ end subroutine deallocate_prefetch_vertical
    if (set_interior.or..not.valid) then
       do ivar=1,size(self%state_variables)
          read_index = self%state_variables(ivar)%globalid%read_index
-         _UNPACK_TO_GLOBAL_(environment%prefetch,read_index,self%data(read_index)%p,environment%mask,self%state_variables(ivar)%missing_value)
+         if (self%interior_data_sources(read_index)==data_source_fabm) then
+            _UNPACK_TO_GLOBAL_(environment%prefetch,read_index,self%data(read_index)%p,environment%mask,self%state_variables(ivar)%missing_value)
+         end if
       end do
    end if
 
@@ -3526,7 +3540,9 @@ subroutine internal_check_horizontal_state(self,environment _ARGUMENTS_HORIZONTA
    if (set_horizontal.or..not.valid) then
       do ivar=1,size(state_variables)
          read_index = state_variables(ivar)%globalid%read_index
-         _HORIZONTAL_UNPACK_TO_GLOBAL_(environment%prefetch_hz,read_index,self%data_hz(read_index)%p,environment%mask,state_variables(ivar)%missing_value)
+         if (self%horizontal_data_sources(read_index)==data_source_fabm) then
+            _HORIZONTAL_UNPACK_TO_GLOBAL_(environment%prefetch_hz,read_index,self%data_hz(read_index)%p,environment%mask,state_variables(ivar)%missing_value)
+         end if
       end do
    end if
 
@@ -3547,7 +3563,7 @@ subroutine internal_check_horizontal_state(self,environment _ARGUMENTS_HORIZONTA
 
       do ivar=1,size(self%state_variables)
          read_index = self%state_variables(ivar)%globalid%read_index
-
+         if (self%interior_data_sources(read_index)==data_source_fabm) then
 #if _FABM_BOTTOM_INDEX_==-1&&defined(_HORIZONTAL_IS_VECTORIZED_)
       if (flag==1) then
 #endif
@@ -3586,7 +3602,7 @@ subroutine internal_check_horizontal_state(self,environment _ARGUMENTS_HORIZONTA
 #  endif
    end if
 #endif
-
+         end if
       end do
    end if
 
