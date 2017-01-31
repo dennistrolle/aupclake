@@ -29,10 +29,10 @@
 ! !PUBLIC MEMBER FUNCTIONS:
    public
 
-   integer,parameter :: BULK_STATE_VARIABLE            = 1
+   integer,parameter :: INTERIOR_STATE_VARIABLE        = 1
    integer,parameter :: SURFACE_STATE_VARIABLE         = 2
    integer,parameter :: BOTTOM_STATE_VARIABLE          = 3
-   integer,parameter :: BULK_DIAGNOSTIC_VARIABLE       = 4
+   integer,parameter :: INTERIOR_DIAGNOSTIC_VARIABLE   = 4
    integer,parameter :: HORIZONTAL_DIAGNOSTIC_VARIABLE = 5
    integer,parameter :: CONSERVED_QUANTITY             = 6
 
@@ -198,16 +198,16 @@
       end do
    end function model_count
 
-   subroutine get_counts(nstate_bulk,nstate_surface,nstate_bottom,ndiagnostic_bulk,ndiagnostic_horizontal,nconserved, &
+   subroutine get_counts(nstate_interior,nstate_surface,nstate_bottom,ndiagnostic_interior,ndiagnostic_horizontal,nconserved, &
       ndependencies,nparameters,ncouplings) bind(c)
       !DIR$ ATTRIBUTES DLLEXPORT :: get_counts
-      integer(c_int),intent(out) :: nstate_bulk,nstate_surface,nstate_bottom
-      integer(c_int),intent(out) :: ndiagnostic_bulk,ndiagnostic_horizontal
+      integer(c_int),intent(out) :: nstate_interior,nstate_surface,nstate_bottom
+      integer(c_int),intent(out) :: ndiagnostic_interior,ndiagnostic_horizontal
       integer(c_int),intent(out) :: nconserved,ndependencies,nparameters,ncouplings
-      nstate_bulk = size(model%state_variables)
+      nstate_interior = size(model%state_variables)
       nstate_surface = size(model%surface_state_variables)
       nstate_bottom = size(model%bottom_state_variables)
-      ndiagnostic_bulk = size(model%diagnostic_variables)
+      ndiagnostic_interior = size(model%diagnostic_variables)
       ndiagnostic_horizontal = size(model%horizontal_diagnostic_variables)
       nconserved = size(model%conserved_quantities)
       ndependencies = size(environment_names)
@@ -224,13 +224,13 @@
 
       ! Get a pointer to the target variable
       select case (category)
-      case (BULK_STATE_VARIABLE)
+      case (INTERIOR_STATE_VARIABLE)
          variable => model%state_variables(index)
       case (SURFACE_STATE_VARIABLE)
          variable => model%surface_state_variables(index)
       case (BOTTOM_STATE_VARIABLE)
          variable => model%bottom_state_variables(index)
-      case (BULK_DIAGNOSTIC_VARIABLE)
+      case (INTERIOR_DIAGNOSTIC_VARIABLE)
          variable => model%diagnostic_variables(index)
       case (HORIZONTAL_DIAGNOSTIC_VARIABLE)
          variable => model%horizontal_diagnostic_variables(index)
@@ -252,13 +252,13 @@
 
       ! Get a pointer to the target variable
       select case (category)
-      case (BULK_STATE_VARIABLE)
+      case (INTERIOR_STATE_VARIABLE)
          variable => model%state_variables(index)%target
       case (SURFACE_STATE_VARIABLE)
          variable => model%surface_state_variables(index)%target
       case (BOTTOM_STATE_VARIABLE)
          variable => model%bottom_state_variables(index)%target
-      case (BULK_DIAGNOSTIC_VARIABLE)
+      case (INTERIOR_DIAGNOSTIC_VARIABLE)
          variable => model%diagnostic_variables(index)%target
       case (HORIZONTAL_DIAGNOSTIC_VARIABLE)
          variable => model%horizontal_diagnostic_variables(index)%target
@@ -353,20 +353,20 @@
       integer(c_int),intent(in),value  :: index
       real(c_double),intent(in),target :: value
 
-      call fabm_link_bulk_data(model,environment_names(index),value)
+      call fabm_link_interior_data(model,environment_names(index),value)
       call fabm_link_horizontal_data(model,environment_names(index),value)
       call fabm_link_scalar_data(model,environment_names(index),value)
       if (index==index_column_depth) column_depth => value
    end subroutine link_dependency_data
 
-   subroutine link_bulk_state_data(index,value) bind(c)
-      !DIR$ ATTRIBUTES DLLEXPORT :: link_bulk_state_data
+   subroutine link_interior_state_data(index,value) bind(c)
+      !DIR$ ATTRIBUTES DLLEXPORT :: link_interior_state_data
       integer(c_int),intent(in),   value  :: index
       real(c_double),intent(inout),target :: value
 
       value = model%state_variables(index)%initial_value
-      call fabm_link_bulk_state_data(model,index,value)
-   end subroutine link_bulk_state_data
+      call fabm_link_interior_state_data(model,index,value)
+   end subroutine link_interior_state_data
 
    subroutine link_surface_state_data(index,value) bind(c)
       !DIR$ ATTRIBUTES DLLEXPORT :: link_surface_state_data
@@ -386,27 +386,29 @@
       call fabm_link_bottom_state_data(model,index,value)
    end subroutine link_bottom_state_data
 
-   subroutine get_rates(pelagic_rates_) bind(c)
+   subroutine get_rates(pelagic_rates_, do_surface, do_bottom) bind(c)
       !DIR$ ATTRIBUTES DLLEXPORT :: get_rates
       real(c_double),target,intent(in) :: pelagic_rates_(*)
+      integer(c_int),value, intent(in) :: do_surface, do_bottom
 
       real(c_double),pointer :: pelagic_rates(:)
       real(rk)               :: ext
-
-      if (.not.associated(column_depth)) call driver%fatal_error('get_rates', &
-         'Value for environmental dependency '//trim(environment_names(index_column_depth))// &
-         ' must be provided before calling get_rates.')
 
       call fabm_get_light_extinction(model,ext)
       call fabm_get_light(model)
       call c_f_pointer(c_loc(pelagic_rates_),pelagic_rates, &
         (/size(model%state_variables)+size(model%surface_state_variables)+size(model%bottom_state_variables)/))
       pelagic_rates = 0.0_rk
-      call fabm_do_surface(model,pelagic_rates(1:size(model%state_variables)), &
+      if (int2logical(do_surface)) call fabm_do_surface(model,pelagic_rates(1:size(model%state_variables)), &
          pelagic_rates(size(model%state_variables)+1:size(model%state_variables)+size(model%surface_state_variables)))
-      call fabm_do_bottom(model,pelagic_rates(1:size(model%state_variables)), &
+      if (int2logical(do_bottom)) call fabm_do_bottom(model,pelagic_rates(1:size(model%state_variables)), &
          pelagic_rates(size(model%state_variables)+size(model%surface_state_variables)+1:))
-      pelagic_rates(1:size(model%state_variables)) = pelagic_rates(1:size(model%state_variables))/column_depth
+      if (int2logical(do_surface) .or. int2logical(do_bottom)) then
+         if (.not.associated(column_depth)) call driver%fatal_error('get_rates', &
+            'Value for environmental dependency '//trim(environment_names(index_column_depth))// &
+            ' must be provided if get_rates is called with the do_surface and/or do_bottom flags.')
+         pelagic_rates(1:size(model%state_variables)) = pelagic_rates(1:size(model%state_variables))/column_depth
+      end if
       call fabm_do(model,pelagic_rates(1:size(model%state_variables)))
 
       ! Compute rate of change in conserved quantities
@@ -417,12 +419,12 @@
       !where (abs_conserved_rates>0.0_rk) conserved_rates = conserved_rates/abs_conserved_rates
    end subroutine get_rates
 
-   subroutine get_bulk_diagnostic_data(index,ptr) bind(c)
-      !DIR$ ATTRIBUTES DLLEXPORT :: get_bulk_diagnostic_data
+   subroutine get_interior_diagnostic_data(index,ptr) bind(c)
+      !DIR$ ATTRIBUTES DLLEXPORT :: get_interior_diagnostic_data
       integer(c_int),intent(in),value :: index
       type(c_ptr),   intent(out)      :: ptr
-      ptr = c_loc(fabm_get_bulk_diagnostic_data(model,index))
-   end subroutine get_bulk_diagnostic_data
+      ptr = c_loc(fabm_get_interior_diagnostic_data(model,index))
+   end subroutine get_interior_diagnostic_data
 
    subroutine get_horizontal_diagnostic_data(index,ptr) bind(c)
       !DIR$ ATTRIBUTES DLLEXPORT :: get_horizontal_diagnostic_data
@@ -431,7 +433,7 @@
       ptr = c_loc(fabm_get_horizontal_diagnostic_data(model,index))
    end subroutine get_horizontal_diagnostic_data
 
-   subroutine finalize() bind(c)
+   subroutine finalize()
       call fabm_finalize(model)
       if (allocated(environment_names)) deallocate(environment_names)
       if (allocated(environment_units)) deallocate(environment_units)
