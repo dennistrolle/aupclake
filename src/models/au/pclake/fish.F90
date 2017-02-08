@@ -4,35 +4,7 @@
 !
 ! !INTERFACE:
    module au_pclake_fish
-!
-! !DESCRIPTION:
-!  The au_pclake_fish module describes the state variables regarding zooplankton-
-!  vorous fish(sDFiJv,sNFiJv,sPFiAd),benthivorous fish(sDFiAd,sNFiAd,sPFiAd)and
-!  piscivorous fish(sDPisc).
-!  Therefore, the state variables and their related its local processes are:
-!  sDFiJv,sPFiJv,sNFiJv,(zooplanktivorous fish in dry-weight, nitrogen element and phosphor-
-!  -us element respectively)
-!  units: gDW/m**3, gP/m**3,gP/m**3
-!  local processes: migration,reproduction(+,part of benthivorous fish became young fi-
-!  -sh),assimilation(predation on zooplankton),respiration(only for sDFiJv),exr-
-!  -etion(only for sPFiJv,sNFiJv),mortality,consumption by piscivorous fish and
-!  aging(-,part of zooplanktivorous fish become benthivorous fish)
-!  sDFiAd,sPFiAd,sNFiAd,(benthivorous fish in dry-weight, nitrogen element and phosphorus element respectively)
-!  units:gDW/m**3, gP/m**3,gP/m**3
-!  local processes: migration,reproduction(-,part of benthivorous fish became young fi-
-!  -sh),respiration(only for sDFiAd),exretion(only for sPFiAd and sNFiAd),morta-
-!  -lity, consumption by piscivorous fish ,harvest and aging(+,part of young fi-
-!  -sh become benthivorous fish).(!! Notice the assimilation of benthivorous fish is in the
-!   benthic module, where benthivorous fish predating the zoobenthos.)
-!  sDPisc,gDW/m**3)(piscivorous fish will have fixed N/D and P/D ratio,so the
-!  other two will be diagnostic variables)
-!  local processes: migration,assimilation,respiration,mortality and harvest
-!  This module also describes the processes which influence the state variables
-!  registered in other modules, including:
-!  Detritus morted white fish and piscivorous fish, and egested by all fish:
-!  sDDetW<==sDFiJv&sDFiAd&sDPisc,sNDetW<==sNFiJv&sNFiAd&aNPisc,sPDetW<==sPFiJv&sPFiAd&aPPisc
-!  nutrients excreted by fish and dissolved part of mortality and egestion:
-!   sNH4W<==sNFiJv&sNFiAd&aNPisc,sPO4<==sPFiJv&sPFiAd&aPPisc
+
 ! !USES:
    use fabm_types
    use au_pclake_utility, ONLY:uFunTmBio
@@ -40,72 +12,74 @@
    implicit none
 
 !  default: all is private.
-      private
+   private
 !
 ! !PUBLIC DERIVED TYPES:
    type, extends(type_base_model),public :: type_au_pclake_fish
-!     local state variable identifiers
-!     id_sDFiJv,zooplanktivorous fish concentration in dry-weight, gDW/m**3
-!     id_sPFiJv,zooplanktivorous fish concentration in nitrogen element, gN/m**3
-!     id_sNFiJv,zooplanktivorous fish concentration in phosphorus element, gP/m**3
-!     id_sDFiAd,benthivoros fish concentration in dry-weight, gDW/m**3
-!     id_sPFiAd,benthivoros fish concentration in nitrogen element, gN/m**3
-!     id_sNFiAd,benthivoros fish concentration in phosphorus element, gP/m**3
-!     id_sDPisc,piscivorous fish concentration in dry-weight, gDW/m**3
-      type (type_state_variable_id)            :: id_sDFiJv,id_sPFiJv,id_sNFiJv
-      type (type_state_variable_id)            :: id_sDFiAd,id_sPFiAd,id_sNFiAd,id_sDPisc
-!     Fish manipulation,changed biomass in fish
-      type (type_state_variable_id)            :: id_ChangedFiAd,id_ChangedFiJv,id_ChangedPisc
-!     diagnostic variables for local output
-!     id_aNPisc, piscivorous fish concentration in nitrogen element, gN/m**3
-!     id_aPPisc, piscivorous fish concentration in phosphorus element, gP/m**3
-      type (type_diagnostic_variable_id)       :: id_aNPisc,id_aPPisc
-!    diagnostic variables for modular fluxes
-      type (type_diagnostic_variable_id)       :: id_wDFiJv,id_wPFiJv,id_wNFiJv
-      type (type_diagnostic_variable_id)       :: id_wDFiAd ,id_wPFiAd,id_wNFiAd
-      type (type_diagnostic_variable_id)       :: id_wDPisc ,id_wPFishPO4W,id_wNFishNH4W
-      type (type_diagnostic_variable_id)       :: id_wDFishDetW,id_wNFishDetW,id_wPFishDetW
-      type (type_diagnostic_variable_id)       :: id_wDFishZoo,id_wNFishZoo,id_wPFishZoo
-!     state dependencies identifiers
-      type (type_state_variable_id)            :: id_DDetpoolW,id_PDetpoolW,id_NDetpoolW
-      type (type_state_variable_id)            :: id_NH4poolW,id_PO4poolW
-      type (type_state_variable_id)            :: id_DFoodZoo,id_NFoodZoo,id_PFoodZoo
-!     environmental dependencies
-      type (type_dependency_id)                :: id_uTm ,id_dz
-      type (type_horizontal_dependency_id)     :: id_sDepthW
-      type (type_global_dependency_id)         :: id_Day
-!     diagnostic dependencies
-      type (type_horizontal_dependency_id)     :: id_aDSubVeg,id_tDEnvFiAd,id_aDSatFiAd
-!     Fish manipulation, external fish manipulation rate
-      type (type_horizontal_dependency_id)     :: id_ManFiAd,id_ManFiJv,id_ManPisc
-!!    Model parameters
-!     parameters for fish
-      real(rk)      :: kMigrFish,cDFiJvIn,cDFiAdIn
-      real(rk)      :: cDPiscIn,kMigrPisc,fDBone
-      real(rk)      :: fPBone,cDCarrFish,fDissEgesFish,fDissMortFish
-      real(rk)      :: cTmOptFish,cSigTmFish,cDayReprFish,fReprFish
-      real(rk)      :: fAgeFish,kDAssFiJv,hDZooFiJv,fDAssFiJv
-      real(rk)      :: kDRespFiJv,kMortFiJv
-      real(rk)      :: kDRespFiAd,kMortFiAd,cDCarrPiscMax,cDCarrPiscMin
-      real(rk)      :: cDCarrPiscBare,cDPhraMinPisc,cCovVegMin
-      real(rk)      :: cRelPhraPisc,cRelVegPisc,kDAssPisc,hDVegPisc
-      real(rk)      :: hDFishPisc,fDAssPisc,fDissEgesPisc,kDRespPisc
-      real(rk)      :: kMortPisc,fDissMortPisc,cTmOptPisc,cSigTmPisc
-      real(rk)      :: cPDFishRef,cNDFishRef,cPDPisc,cNDPisc
-!     Fish manipulation parameters, switch for turned on/off fish manipulation
-      logical    :: Manipulate_FiAd, Manipulate_FiJv, Manipulate_Pisc
-!     minimum state variable values
-      real(rk)   :: cDFiJvMin,cDFiAdMin,cDPiscMin
-      
-      
-      
+!  local state variable identifiers
+!  id_sDFiJv,zooplanktivorous fish concentration in dry-weight, gDW/m**3
+!  id_sPFiJv,zooplanktivorous fish concentration in nitrogen element, gN/m**3
+!  id_sNFiJv,zooplanktivorous fish concentration in phosphorus element, gP/m**3
+!  id_sDFiAd,benthivoros fish concentration in dry-weight, gDW/m**3
+!  id_sPFiAd,benthivoros fish concentration in nitrogen element, gN/m**3
+!  id_sNFiAd,benthivoros fish concentration in phosphorus element, gP/m**3
+!  id_sDPisc,piscivorous fish concentration in dry-weight, gDW/m**3
+   type (type_state_variable_id)            :: id_sDFiJv,id_sPFiJv,id_sNFiJv
+   type (type_state_variable_id)            :: id_sDFiAd,id_sPFiAd,id_sNFiAd,id_sDPisc
+!  Fish manipulation,changed biomass in fish
+   type (type_state_variable_id)            :: id_ChangedFiAd,id_ChangedFiJv,id_ChangedPisc
+!  diagnostic variables for local output
+!  id_aNPisc, piscivorous fish concentration in nitrogen element, gN/m**3
+!  id_aPPisc, piscivorous fish concentration in phosphorus element, gP/m**3
+   type (type_diagnostic_variable_id)       :: id_aNPisc,id_aPPisc
+#ifdef _DEVELOPMENT_
+! diagnostic variables for modular fluxes
+   type (type_diagnostic_variable_id)       :: id_wDFiJv,id_wPFiJv,id_wNFiJv
+   type (type_diagnostic_variable_id)       :: id_wDFiAd ,id_wPFiAd,id_wNFiAd
+   type (type_diagnostic_variable_id)       :: id_wDPisc ,id_wPFishPO4W,id_wNFishNH4W
+   type (type_diagnostic_variable_id)       :: id_wDFishDetW,id_wNFishDetW,id_wPFishDetW
+   type (type_diagnostic_variable_id)       :: id_wDFishZoo,id_wNFishZoo,id_wPFishZoo
+#endif
+!  state dependencies identifiers
+   type (type_state_variable_id)            :: id_DDetpoolW,id_PDetpoolW,id_NDetpoolW
+   type (type_state_variable_id)            :: id_NH4poolW,id_PO4poolW
+   type (type_state_variable_id)            :: id_DFoodZoo,id_NFoodZoo,id_PFoodZoo
+   type (type_state_variable_id)            :: id_DDisDetpoolW,id_PDisDetpoolW,id_NDisDetpoolW
+!  environmental dependencies
+   type (type_dependency_id)                :: id_uTm ,id_dz
+   type (type_horizontal_dependency_id)     :: id_sDepthW
+   type (type_global_dependency_id)         :: id_Day
+!  diagnostic dependencies
+   type (type_horizontal_dependency_id)     :: id_aDSubVeg,id_tDEnvFiAd,id_aDSatFiAd
+!  Fish manipulation, external fish manipulation rate
+   type (type_horizontal_dependency_id)     :: id_ManFiAd,id_ManFiJv,id_ManPisc
+!  Model parameters
+!  parameters for fish
+   real(rk)      :: kMigrFish,cDFiJvIn,cDFiAdIn
+   real(rk)      :: cDPiscIn,kMigrPisc,fDBone
+   real(rk)      :: fPBone,cDCarrFish,fDissEgesFish,fDissMortFish
+   real(rk)      :: cTmOptFish,cSigTmFish,cDayReprFish,fReprFish
+   real(rk)      :: fAgeFish,kDAssFiJv,hDZooFiJv,fDAssFiJv
+   real(rk)      :: kDRespFiJv,kMortFiJv
+   real(rk)      :: kDRespFiAd,kMortFiAd,cDCarrPiscMax,cDCarrPiscMin
+   real(rk)      :: cDCarrPiscBare,cDPhraMinPisc,cCovVegMin
+   real(rk)      :: cRelPhraPisc,cRelVegPisc,kDAssPisc,hDVegPisc
+   real(rk)      :: hDFishPisc,fDAssPisc,fDissEgesPisc,kDRespPisc
+   real(rk)      :: kMortPisc,fDissMortPisc,cTmOptPisc,cSigTmPisc
+   real(rk)      :: cPDFishRef,cNDFishRef,cPDPisc,cNDPisc
+   real(rk)      :: cDayAgeFish
+!  Fish manipulation parameters, switch for turned on/off fish manipulation
+   logical    :: Manipulate_FiAd, Manipulate_FiJv, Manipulate_Pisc
+!  minimum state variable values
+   real(rk)   :: cDFiJvMin,cDFiAdMin,cDPiscMin
+!  dissolved organic fraction from fish
+   real(rk)   :: fDisFisDetW
+
    contains
 
-!     Model procedures
-      procedure :: initialize
-      procedure :: do
-      !procedure :: do_bottom
-      procedure :: get_light_extinction
+!  Model procedures
+   procedure :: initialize
+   procedure :: do
 
    end type type_au_pclake_fish
 
@@ -126,7 +100,6 @@
 ! !IROUTINE:
 !
 ! !INTERFACE:
-
    subroutine initialize(self,configunit)
 !
 ! !DESCRIPTION:
@@ -134,27 +107,27 @@
 ! !INPUT PARAMETERS:
    class (type_au_pclake_fish), intent(inout), target :: self
    integer,                     intent(in)            :: configunit
-
 !EOP
 !-----------------------------------------------------------------------
 !BOC
-
 !  Store parameter values in our own derived type
 !  NB: all rates must be provided in values per day,
 !  and are converted here to values per second.
    call self%get_parameter(self%kMigrFish,       'kMigrFish',      'd-1',       'fish migration rate',                                                            default=0.001_rk,   scale_factor=1.0_rk/secs_pr_day)
    call self%get_parameter(self%cDFiJvIn,        'cDFiJvIn',       'gDW m-2',   'external fish density',                                                          default=0.005_rk)
    call self%get_parameter(self%cDFiAdIn,        'cDFiAdIn',       'gDW m-2',   'external fish density',                                                          default=0.005_rk)
-   call self%get_parameter(self%cDPiscIn,        'cDPiscIn',       'gDW m-2',   'external Pi_sc. density',                                                        default=0.001_rk)
-   call self%get_parameter(self%kMigrPisc,       'kMigrPisc',      'd-1',       'Pi_sc. migration rate',                                                          default=0.001_rk,   scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%cDPiscIn,        'cDPiscIn',       'gDW m-2',   'external Pisc. density',                                                         default=0.001_rk)
+   call self%get_parameter(self%kMigrPisc,       'kMigrPisc',      'd-1',       'Pisc. migration rate',                                                           default=0.001_rk,   scale_factor=1.0_rk/secs_pr_day)
    call self%get_parameter(self%fDBone,          'fDBone',         '[-]',       'fraction of fish C fixed in bones and scales',                                   default=0.35_rk)
    call self%get_parameter(self%fPBone,          'fPBone',         '[-]',       'fraction of fish P fixed in bones and scales',                                   default=0.5_rk)
    call self%get_parameter(self%cDCarrFish,      'cDCarrFish',     'gDW m-2',   'carrying capacity of fish',                                                      default=15.0_rk)
    call self%get_parameter(self%fDissEgesFish,   'fDissEgesFish',  '[-]',       'soluble nutrient fraction of by fish egested food',                              default=0.25_rk)
    call self%get_parameter(self%fDissMortFish,   'fDissMortFish',  '[-]',       'soluble nutrient fraction of died fish(excl. bones and scales',                  default=0.1_rk)
-   call self%get_parameter(self%cTmOptFish,      'cTmOptFish',     '�C',        'optimum temp. of fish',                                                          default=25.0_rk)
-   call self%get_parameter(self%cSigTmFish,      'cSigTmFish',     '�C',        'temperature constant of fish(sigma in Gaussian curve)',                          default=10.0_rk)
+   call self%get_parameter(self%cTmOptFish,      'cTmOptFish',     'degree C',  'optimal  temperature of fish',                                                   default=25.0_rk)
+   call self%get_parameter(self%cSigTmFish,      'cSigTmFish',     'degree C',  'temperature constant of fish(sigma in Gaussian curve)',                          default=10.0_rk)
    call self%get_parameter(self%cDayReprFish,    'cDayReprFish',   '[-]',       'reproduction date of fish ',                                                     default=120.0_rk)
+!  new parameter, fish aging day count: the day young fish become adult fish
+   call self%get_parameter(self%cDayAgeFish,    'cDayAgeFish',     '[-]',       'aging date of fish ',                                                            default=365.0_rk)
    call self%get_parameter(self%fReprFish,       'fReprFish',      '[-]',       'yearly reproduction fraction of benthivorous fish, daily rate',                  default=0.02_rk)
    call self%get_parameter(self%fAgeFish,        'fAgeFish',       '[-]',       'yearly ageing fraction of zooplanktivorous fish,.daily rate',                    default=0.5_rk)
    call self%get_parameter(self%kDAssFiJv,       'kDAssFiJv',      'd-1',       'maximum assimilation rate of zooplanktivorous fish',                             default=0.12_rk,    scale_factor=1.0_rk/secs_pr_day)
@@ -164,38 +137,39 @@
    call self%get_parameter(self%kMortFiJv,       'kMortFiJv',      'd-1',       'specific mortality of zooplanktivorous fish',                                    default=0.00137_rk, scale_factor=1.0_rk/secs_pr_day)
    call self%get_parameter(self%kDRespFiAd,      'kDRespFiAd',     'd-1',       'maintenance respiration constant of benthivorous fish',                          default=0.004_rk,   scale_factor=1.0_rk/secs_pr_day)
    call self%get_parameter(self%kMortFiAd,       'kMortFiAd',      'd-1',       'specific mortality of benthivorous fish',                                        default=0.00027_rk, scale_factor=1.0_rk/secs_pr_day)
-   call self%get_parameter(self%cDCarrPiscMax,   'cDCarrPiscMax',  'gDW m-2',   'maximum carrying capacity of  Pi_sc',                                            default=1.2_rk)
-   call self%get_parameter(self%cDCarrPiscMin,   'cDCarrPiscMin',  'gDW m-2',   'minimum carrying capacity of  Pi_sc',                                            default=0.1_rk)
-   call self%get_parameter(self%cDCarrPiscBare,  'cDCarrPiscBare', 'gDW m-2',   'carrying capacity of  Pi sc for lake without marsh zone',                        default=0.1_rk)
-   call self%get_parameter(self%cDPhraMinPisc,   'cDPhraMinPisc',  'gDW m-2',   'min. reed biomass for  Pi_sc',                                                   default=50.0_rk)
-   call self%get_parameter(self%cCovVegMin,      'cCovVegMin',     '%',         'min. subm.veg. coverage for  Pi_sc',                                             default=40.0_rk)
-   call self%get_parameter(self%cRelPhraPisc,    'cRelPhraPisc',   'gDW m-2',   'rel.  Pi_sc density per reed if subm.veg. absent',                              default=0.075_rk)
-   call self%get_parameter(self%cRelVegPisc,     'cRelVegPisc',    'gDW m-2',   'extra rel.  Pi_sc density perreed if  aCovVeg  >  cCovVegMin',                  default=0.03_rk)
+   call self%get_parameter(self%cDCarrPiscMax,   'cDCarrPiscMax',  'gDW m-2',   'maximum carrying capacity of  Pisc. fish',                                       default=1.2_rk)
+   call self%get_parameter(self%cDCarrPiscMin,   'cDCarrPiscMin',  'gDW m-2',   'minimum carrying capacity of  Pisc. fish',                                       default=0.1_rk)
+   call self%get_parameter(self%cDCarrPiscBare,  'cDCarrPiscBare', 'gDW m-2',   'carrying capacity of  Pisc. fish for lake without marsh zone',                   default=0.1_rk)
+   call self%get_parameter(self%cDPhraMinPisc,   'cDPhraMinPisc',  'gDW m-2',   'minimum reed biomass for Pisc. fish',                                            default=50.0_rk)
+   call self%get_parameter(self%cCovVegMin,      'cCovVegMin',     '%',         'minimum submerged vegetation coverage for  Pisc. fish',                          default=40.0_rk)
+   call self%get_parameter(self%cRelPhraPisc,    'cRelPhraPisc',   'gDW m-2',   'relative Pisc. fish density per reed if submerged vegetation absent',            default=0.075_rk)
+   call self%get_parameter(self%cRelVegPisc,     'cRelVegPisc',    'gDW m-2',   'extra relative Pisc. fish density per reed if  aCovVeg  >  cCovVegMin',          default=0.03_rk)
    call self%get_parameter(self%kDAssPisc,       'kDAssPisc',      'd-1',       'maximum assimilation rate',                                                      default=0.025_rk,   scale_factor=1.0_rk/secs_pr_day)
-   call self%get_parameter(self%hDVegPisc,       'hDVegPisc',      'g m-2',     'half-sat. vegetation biomass for  Pi_sc growth',                                 default=5.0_rk)
-   call self%get_parameter(self%hDFishPisc,      'hDFishPisc',     'g m-2',     'half-saturating DFish for  Pi_sc predation',                                     default=1.0_rk)
-   call self%get_parameter(self%fDAssPisc,       'fDAssPisc',      '[-]',       'C ass. efficiency of  Pi_sc',                                                    default=0.4_rk)
+   call self%get_parameter(self%hDVegPisc,       'hDVegPisc',      'g m-2',     'half-sat. vegetation biomass for  Pisc. fish growth',                            default=5.0_rk)
+   call self%get_parameter(self%hDFishPisc,      'hDFishPisc',     'g m-2',     'half-saturating DFish for  Pisc. fish predation',                                default=1.0_rk)
+   call self%get_parameter(self%fDAssPisc,       'fDAssPisc',      '[-]',       'C assimilation efficiency of  Pisc. fish',                                       default=0.4_rk)
    call self%get_parameter(self%fDissEgesPisc,   'fDissEgesPisc',  '[-]',       'soluble P fraction of by fish egested food',                                     default=0.25_rk)
-   call self%get_parameter(self%kDRespPisc,      'kDRespPisc',     'd-1',       'maint. respiration constant of  Pi_sc',                                          default=0.005_rk,   scale_factor=1.0_rk/secs_pr_day)
-   call self%get_parameter(self%kMortPisc,       'kMortPisc',      'd-1',       'specific mortality of  Pi_sc',                                                   default=0.00027_rk, scale_factor=1.0_rk/secs_pr_day)
-   call self%get_parameter(self%fDissMortPisc,   'fDissMortPisc',  '[-]',       'soluble nutrient fraction of died  Pi_sc(excl. bones and scales',                default=0.1_rk)
-   call self%get_parameter(self%cTmOptPisc,      'cTmOptPisc',     '�C',        'optimum temp. of  Pi_sc',                                                        default=25.0_rk)
-   call self%get_parameter(self%cSigTmPisc,      'cSigTmPisc',     '�C',        'temperature constant of  Pi_sc(sigma in Gaussian curve)',                        default=10.0_rk)
-   call self%get_parameter(self%cPDFishRef,      'cPDFishRef',     'mgP/mgDW',  'reference P/C ratio of Fish',                                                    default=0.022_rk)
-   call self%get_parameter(self%cNDFishRef,      'cNDFishRef',     'mgN/mgDW',  'reference N/C ratio of Fish',                                                    default=0.1_rk)
-   call self%get_parameter(self%cPDPisc,         'cPDPisc',        'mgP/mgDW',  'reference P/C ratio of  Pi_sc',                                                  default=0.022_rk)
-   call self%get_parameter(self%cNDPisc,         'cNDPisc',        'mgN/mgDW',  'reference N/C ratio of  Pi_sc ',                                                 default=0.1_rk)
+   call self%get_parameter(self%kDRespPisc,      'kDRespPisc',     'd-1',       'respiration constant of  Pisc. fish',                                            default=0.005_rk,   scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%kMortPisc,       'kMortPisc',      'd-1',       'specific mortality of  Pisc. fish',                                              default=0.00027_rk, scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%fDissMortPisc,   'fDissMortPisc',  '[-]',       'soluble nutrient fraction of died Pisc. fish(excl. bones and scales',            default=0.1_rk)
+   call self%get_parameter(self%cTmOptPisc,      'cTmOptPisc',     'degree C',  'optimal temperature of Pisc. fish',                                              default=25.0_rk)
+   call self%get_parameter(self%cSigTmPisc,      'cSigTmPisc',     'degree C',  'temperature constant of Pisc. fish(sigma in Gaussian curve)',                    default=10.0_rk)
+   call self%get_parameter(self%cPDFishRef,      'cPDFishRef',     'mgP/mgDW',  'reference P/C ratio of fish',                                                    default=0.022_rk)
+   call self%get_parameter(self%cNDFishRef,      'cNDFishRef',     'mgN/mgDW',  'reference N/C ratio of fish',                                                    default=0.1_rk)
+   call self%get_parameter(self%cPDPisc,         'cPDPisc',        'mgP/mgDW',  'reference P/C ratio of Pisc. fish',                                              default=0.022_rk)
+   call self%get_parameter(self%cNDPisc,         'cNDPisc',        'mgN/mgDW',  'reference N/C ratio of Pisc. fish ',                                             default=0.1_rk)
 !  Fish manipulation, register of switches
-   call self%get_parameter(self%Manipulate_FiAd, 'Manipulate_FiAd', ' ',        'Turn on benthivorous fish manipulation',                                         default=.false.)
-   call self%get_parameter(self%Manipulate_FiJv, 'Manipulate_FiJv', ' ',        'Turn on zooplanktivorous manipulation',                                          default=.false.)
-   call self%get_parameter(self%Manipulate_Pisc, 'Manipulate_Pisc', ' ',        'Turn on piscivorous fish manipulation',                                          default=.false.)
+   call self%get_parameter(self%Manipulate_FiAd, 'Manipulate_FiAd', ' ',        'turn on/off benthivorous fish manipulation',                                     default=.false.)
+   call self%get_parameter(self%Manipulate_FiJv, 'Manipulate_FiJv', ' ',        'turn on/off zooplanktivorous manipulation',                                      default=.false.)
+   call self%get_parameter(self%Manipulate_Pisc, 'Manipulate_Pisc', ' ',        'turn on/off piscivorous fish manipulation',                                      default=.false.)
 !  the user defined minumun value for state variables
-   call self%get_parameter(self%cDFiJvMin,       'cDFiJvMin',       'gDW/m3',   'minimun zooplanktivorous  fish biomass in system',                               default=0.0001_rk)
-   call self%get_parameter(self%cDFiAdMin,       'cDFiAdMin',       'gDW/m3',   'minimun benthivorous fish biomass in system',                                    default=0.0001_rk)
-   call self%get_parameter(self%cDPiscMin,       'cDPiscMin',       'gDW/m3',   'minimun piscivorous fish biomass in system',                                     default=0.0001_rk)
+   call self%get_parameter(self%cDFiJvMin,       'cDFiJvMin',       'gDW/m3',   'minimum zooplanktivorous  fish biomass in system',                               default=0.0001_rk)
+   call self%get_parameter(self%cDFiAdMin,       'cDFiAdMin',       'gDW/m3',   'minimum benthivorous fish biomass in system',                                    default=0.0001_rk)
+   call self%get_parameter(self%cDPiscMin,       'cDPiscMin',       'gDW/m3',   'minimum piscivorous fish biomass in system',                                     default=0.0001_rk)
+   call self%get_parameter(self%fDisFisDetW,     'fDisFisDetW',     '[-]',      'dissolved organics fraction from fish',                                          default=0.5_rk)
 !  Register local state variable
 !  zooplanktivorous fish, transportation is turned off
-   call self%register_state_variable(self%id_sDFiJv,'sDFiJv','g m-3','zooplanktivorous fish biomass',     &
+   call self%register_state_variable(self%id_sDFiJv,'sDFiJv','g m-3','zooplanktivorous fish dry weight',     &
                                     initial_value= 0.5_rk,minimum=self%cDFiJvMin,no_river_dilution=.TRUE.)
 !   call self%set_variable_property(self%id_sDFiJv,'disable_transport',.true.)
    call self%register_state_variable(self%id_sPFiJv,'sPFiJv','g m-3','zooplanktivorous fish phosphorus content',     &
@@ -205,7 +179,7 @@
                                     initial_value=0.05_rk,minimum=self%cDFiJvMin * self%cNDFishRef,no_river_dilution=.TRUE.)
 !   call self%set_variable_property(self%id_spFiJv,'disable_transport',.true.)
 !  benthivoros fish, transportation turned off
-   call self%register_state_variable(self%id_sDFiAd,'sDFiAd','g m-3','benthivorous fish biomass',     &
+   call self%register_state_variable(self%id_sDFiAd,'sDFiAd','g m-3','benthivorous fish dry weight',     &
                                     initial_value=2.0_rk,minimum=self%cDFiAdMin,no_river_dilution=.TRUE.)
 !   call self%set_variable_property(self%id_sDFiAd,'disable_transport',.true.)
    call self%register_state_variable(self%id_sPFiAd,'sPFiAd','g m-3','benthivorous fish phosphorus content',     &
@@ -215,45 +189,41 @@
                                     initial_value=0.2_rk,minimum=self%cDFiAdMin * self%cNDFishRef,no_river_dilution=.TRUE.)
 !   call self%set_variable_property(self%id_sNFiAd,'disable_transport',.true.)
 !  piscivorous fish
-   call self%register_state_variable(self%id_sDPisc,'sDPisc','g m-3','piscivorous fish biomass', &
+   call self%register_state_variable(self%id_sDPisc,'sDPisc','g m-3','piscivorous fish dry weight', &
                                     initial_value=0.01_rk,minimum=NearZero,no_river_dilution=.TRUE.)
 !   call self%set_variable_property(self%id_sDPisc,'disable_transport',.true.)
-!  Fish manipulation, if manipulation turned on, then registered state variable of fish biomass change
+!  Fish manipulation, if manipulation,register state variable of fish biomass change
 !  as well as register external fish manipulation rate
-!  If benthivorous fish manipulation tured on
-   If(self%Manipulate_FiAd) then
-     call self%register_state_variable(self%id_ChangedFiAd, 'ChangedFiAd',          '',    'changed benthivorous fish biomass', 0.0_rk)
-     call self%register_dependency(self%id_ManFiAd,         'manipulate_rate_FiAd', 's-1', 'benthivorous fish manipulate rate')
-   endif
-!  If zooplanktivorous turned on
-   If(self%Manipulate_FiJv) then
-     call self%register_state_variable(self%id_ChangedFiJv,  'ChangedFiJv',          '',    'changed zooplanktivorous biomass', 0.0_rk)
-     call self%register_dependency(self%id_ManFiJv,          'manipulate_rate_FiJv', 's-1', 'zooplanktivorous manipulate rate')
-   endif
-!  If piscivorous fish turned on
-   If(self%Manipulate_Pisc) then
-     call self%register_state_variable(self%id_ChangedPisc,  'ChangedPisc',          '',    'changed piscivorous fish biomass', 0.0_rk)
-     call self%register_dependency(self%id_ManPisc,          'manipulate_rate_Pisc', 's-1', 'piscivorous fish manipulate rate')
-   endif
+!  Benthivorous fish manipulation 
+   call self%register_state_variable(self%id_ChangedFiAd, 'ChangedFiAd',          '',    'changed benthivorous fish biomass', 0.0_rk)
+   call self%register_dependency(self%id_ManFiAd,         'manipulate_rate_FiAd', 's-1', 'benthivorous fish manipulate rate')
+!  Zooplanktivorous fish manipulation
+   call self%register_state_variable(self%id_ChangedFiJv,  'ChangedFiJv',          '',    'changed zooplanktivorous biomass', 0.0_rk)
+   call self%register_dependency(self%id_ManFiJv,          'manipulate_rate_FiJv', 's-1', 'zooplanktivorous manipulate rate')
+!  Piscivorous fish manipulation
+   call self%register_state_variable(self%id_ChangedPisc,  'ChangedPisc',          '',    'changed piscivorous fish biomass', 0.0_rk)
+   call self%register_dependency(self%id_ManPisc,          'manipulate_rate_Pisc', 's-1', 'piscivorous fish manipulate rate')
 !  Register diagnostic variables for dependencies in other modules
    call self%register_diagnostic_variable(self%id_aNPisc,    'aNPisc',      'g m-3',     'Piscivorous fish nitrogen content',   output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_aPPisc,    'aPPisc',      'g m-3',     'Piscivorous fish phosphorus content', output=output_instantaneous)
+#ifdef _DEVELOPMENT_
 !  register diagnostic variables for modular fluxes
-   call self%register_diagnostic_variable(self%id_wDFiJv,     'wDFiJv',     'g m-3 s-1', 'fish_DFiJv_change',                    output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wPFiJv,     'wPFiJv',     'g m-3 s-1', 'fish_PFiJv_change',                    output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wNFiJv,     'wNFiJv',     'g m-3 s-1', 'fish_NFiJv_change',                    output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wDFiAd,     'wDFiAd',     'g m-3 s-1', 'fish_DFiAd_change',                    output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wPFiAd,     'wPFiAd',     'g m-3 s-1', 'fish_PFiAd_change',                    output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wNFiAd,     'wNFiAd',     'g m-3 s-1', 'fish_NFiAd_change',                    output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wDPisc,     'wDPisc',     'g m-3 s-1', 'fish_DPisc_change',                    output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wNFishNH4W, 'wNFishNH4W', 'g m-3 s-1', 'fish_NH4W_change',                     output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wPFishPO4W, 'wPFishPO4W', 'g m-3 s-1', 'fish_PO4W_change',                     output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wDFishDetW, 'wDFishDetW', 'g m-3 s-1', 'fish_DDetW_change',                    output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wNFishDetW, 'wNFishDetW', 'g m-3 s-1', 'fish_NDetW_change',                    output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wPFishDetW, 'wPFishDetW', 'g m-3 s-1', 'fish_PDetW_change',                    output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wDFishZoo,  'wDFishZoo',  'g m-3 s-1', 'fish_DZoo_change',                     output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wNFishZoo,  'wNFishZoo',  'g m-3 s-1', 'fish_NZoo_change',                     output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wPFishZoo,  'wPFishZoo',  'g m-3 s-1', 'fish_PZoo_change',                     output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wDFiJv,     'wDFiJv',     'g m-3 s-1', 'fish_DFiJv_change',                   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wPFiJv,     'wPFiJv',     'g m-3 s-1', 'fish_PFiJv_change',                   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wNFiJv,     'wNFiJv',     'g m-3 s-1', 'fish_NFiJv_change',                   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wDFiAd,     'wDFiAd',     'g m-3 s-1', 'fish_DFiAd_change',                   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wPFiAd,     'wPFiAd',     'g m-3 s-1', 'fish_PFiAd_change',                   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wNFiAd,     'wNFiAd',     'g m-3 s-1', 'fish_NFiAd_change',                   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wDPisc,     'wDPisc',     'g m-3 s-1', 'fish_DPisc_change',                   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wNFishNH4W, 'wNFishNH4W', 'g m-3 s-1', 'fish_NH4W_change',                    output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wPFishPO4W, 'wPFishPO4W', 'g m-3 s-1', 'fish_PO4W_change',                    output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wDFishDetW, 'wDFishDetW', 'g m-3 s-1', 'fish_DDetW_change',                   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wNFishDetW, 'wNFishDetW', 'g m-3 s-1', 'fish_NDetW_change',                   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wPFishDetW, 'wPFishDetW', 'g m-3 s-1', 'fish_PDetW_change',                   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wDFishZoo,  'wDFishZoo',  'g m-3 s-1', 'fish_DZoo_change',                    output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wNFishZoo,  'wNFishZoo',  'g m-3 s-1', 'fish_NZoo_change',                    output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wPFishZoo,  'wPFishZoo',  'g m-3 s-1', 'fish_PZoo_change',                    output=output_instantaneous)
+#endif
 !  Register contribution of state to global aggregate variables
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,  self%id_sNFiJv)
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,  self%id_sNFiAd)
@@ -262,27 +232,29 @@
    call self%add_to_aggregate_variable(standard_variables%total_phosphorus,self%id_sPFiAd)
    call self%add_to_aggregate_variable(standard_variables%total_phosphorus,self%id_aPPisc)
 !  register state variables dependencies
-   call self%register_state_dependency(self%id_DDetpoolW, 'Detritus_DW_pool_water','g m-3', 'Detritus_DW_pool_water')
-   call self%register_state_dependency(self%id_NDetpoolW, 'Detritus_N_pool_water', 'g m-3', 'Detritus_N_pool_water')
-   call self%register_state_dependency(self%id_PDetpoolW, 'Detritus_P_pool_water', 'g m-3', 'Detritus_P_pool_water')
-   call self%register_state_dependency(self%id_NH4poolW,  'NH4_pool_water',        'g m-3', 'NH4_pool_water')
-   call self%register_state_dependency(self%id_PO4poolW,  'PO4_pool_water',        'g m-3', 'PO4_pool_water')
-   call self%register_state_dependency(self%id_DFoodZoo,  'Zooplankton_D_Food',    'g m-3', 'Zooplankton_D_Food')
-   call self%register_state_dependency(self%id_NFoodZoo,  'Zooplankton_N_Food',    'g m-3', 'Zooplankton_N_Food')
-   call self%register_state_dependency(self%id_PFoodZoo,  'Zooplankton_P_Food',    'g m-3', 'Zooplankton_P_Food')
+   call self%register_state_dependency(self%id_DDetpoolW,    'detritus_DW_pool_water',     'g m-3', 'detritus DW pool in water')
+   call self%register_state_dependency(self%id_NDetpoolW,    'detritus_N_pool_water',      'g m-3', 'detritus N pool in water')
+   call self%register_state_dependency(self%id_PDetpoolW,    'detritus_P_pool_water',      'g m-3', 'detritus P pool in water')
+   call self%register_state_dependency(self%id_NH4poolW,     'NH4_pool_water',             'g m-3', 'NH4 pool in water')
+   call self%register_state_dependency(self%id_PO4poolW,     'PO4_pool_water',             'g m-3', 'PO4 pool in water')
+   call self%register_state_dependency(self%id_DFoodZoo,     'zooplankton_D_Food',         'g m-3', 'zooplankton D Food')
+   call self%register_state_dependency(self%id_NFoodZoo,     'zooplankton_N_Food',         'g m-3', 'zooplankton N Food')
+   call self%register_state_dependency(self%id_PFoodZoo,     'zooplankton_P_Food',         'g m-3', 'zooplankton P Food')
+   call self%register_state_dependency(self%id_DDisDetpoolW, 'dissolved_detritus_DW_water','g m-3', 'dissolved detritus DW in water')
+   call self%register_state_dependency(self%id_NDisDetpoolW, 'dissolved_detritus_N_water', 'g m-3', 'dissolved detritus N in water')
+   call self%register_state_dependency(self%id_PDisDetpoolW, 'dissolved_detritus_P_water', 'g m-3', 'dissolved detritus P in water')
+   
 !  register environmental dependencies
    call self%register_dependency(self%id_uTm,    standard_variables%temperature)
    call self%register_dependency(self%id_Day,    standard_variables%number_of_days_since_start_of_the_year)
    call self%register_dependency(self%id_dz,     standard_variables%cell_thickness)
    call self%register_dependency(self%id_sDepthW,standard_variables%bottom_depth)
 !  register diagnostic dependencies
-   call self%register_dependency(self%id_tDEnvFiAd, 'Env_correction_adfish',     '[-]',  'Env_correction_adfish')
-   call self%register_dependency(self%id_aDSubVeg,  'Submerged_vegetation',      'g m-2','Submerged_vegetation')
-   call self%register_dependency(self%id_aDSatFiAd, 'Food_limit_function_adfish','[-]',  'Food_limit_function_adfish')
-
+   call self%register_dependency(self%id_tDEnvFiAd, 'env_correction_adfish',     '[-]',  'environmental correction for adult fish')
+   call self%register_dependency(self%id_aDSubVeg,  'submerged_vegetation',      'g m-2','submerged vegetation dry weight')
+   call self%register_dependency(self%id_aDSatFiAd, 'food_limit_function_adfish','[-]',  'food limit function for adault fish')
 
    return
-
 
    end subroutine initialize
 !EOC
@@ -393,6 +365,9 @@
    real(rk)     :: tPEgesPiscDet,tPMortPiscDet
 !  variables for exchange of detritus Si
    real(rk)     :: wSiConsDiatZoo
+!  variables for exchange of dissolved organics
+   real(rk)     :: wDFishDetW_tot,wNFishDetW_tot,wPFishDetW_tot 
+   real(rk)     :: wDFishDisDetW,wNFishDisDetW,wPFishDisDetW
 !  variables for exchange of diatoms
    real(rk)     :: wDFishDiatW,wNFishDiatW,wPFishDiatW
 !  variables for exchange of green algae
@@ -407,8 +382,9 @@
    real(rk)     :: tNManFiAd,tNManFiJv
    real(rk)     :: tPManFiAd,tPManFiJv
    real(rk)     :: ChangedFiAd,ChangedFiJv,ChangedPisc
+#ifdef _DEVELOPMENT_
    integer, save :: n=0
-
+#endif
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -428,7 +404,6 @@
    _GET_(self%id_DFoodZoo,sDZoo)
    _GET_(self%id_NFoodZoo,sNZoo)
    _GET_(self%id_PFoodZoo,sPZoo)
-
 !  retrieve environmental dependencies
    _GET_(self%id_uTm,uTm)
    _GET_GLOBAL_(self%id_Day,Day)
@@ -438,24 +413,16 @@
    _GET_HORIZONTAL_(self%id_aDSubVeg,aDSubVeg)
    _GET_HORIZONTAL_(self%id_tDEnvFiAd,tDEnvFiAd)
    _GET_HORIZONTAL_(self%id_aDSatFiAd,aDSatFiAd)
-!  Fish manipulation, if turned on, get the dependencies
-!  and state variables
+!  Fish manipulation
 !  If benthivorous fish manipulation tured on
-  If(self%Manipulate_FiAd) then
-    _GET_HORIZONTAL_(self%id_ManFiAd,rManFiAd)
-    _GET_(self%id_ChangedFiAd,ChangedFiAd)
-  endif
+   _GET_HORIZONTAL_(self%id_ManFiAd,rManFiAd)
+   _GET_(self%id_ChangedFiAd,ChangedFiAd)
 !  If zooplanktivorous manipulation tured on
-  If(self%Manipulate_FiJv) then
-     _GET_HORIZONTAL_(self%id_ManFiJv,rManFiJv)
-     _GET_(self%id_ChangedFiJv,ChangedFiJv)
-  endif
+   _GET_HORIZONTAL_(self%id_ManFiJv,rManFiJv)
+   _GET_(self%id_ChangedFiJv,ChangedFiJv)
 !  If piscivorous fish manipulation tured on
-  If(self%Manipulate_Pisc) then
-     _GET_HORIZONTAL_(self%id_ManPisc,rManPisc)
-     _GET_(self%id_ChangedPisc,ChangedPisc)
-  endif
-
+   _GET_HORIZONTAL_(self%id_ManPisc,rManPisc)
+   _GET_(self%id_ChangedPisc,ChangedPisc)
 !  convert fish concentration to areal units
    sDFiJv=sDFiJv*sDepthW
    sPFiJv=sPFiJv*sDepthW
@@ -575,11 +542,11 @@
 !  fish reproduction
 !-----------------------------------------------------------------------
 !  Reproduction_flux_DW
-   if (Day >= self%cDayReprFish .and. Day < self%cDayReprFish + 1.0_rk) then
+   if (Day == self%cDayReprFish) then
 !  PCLake_osis:sDFiAd,in g/m^2
-   tDReprFish = self%fReprFish * sDFiAd/secs_pr_day
+      tDReprFish = self%fReprFish * sDFiAd/secs_pr_day
    else
-   tDReprFish =0.0_rk
+      tDReprFish =0.0_rk
    endif
 !  Reproduction_flux_P
    tPReprFish = rPDFiAd * tDReprFish
@@ -589,11 +556,11 @@
 !  fish aging
 !-----------------------------------------------------------------------
 !  Ageing_DW
-   if (Day >=  365.0_rk .AND. Day <= 365.0_rk) then
+   if (Day == self%cDayAgeFish) then
 !  PCLake_osis:sDFiAd,in g/m^2
-   tDAgeFish = self%fAgeFish * sDFiJv/secs_pr_day
+      tDAgeFish = self%fAgeFish * sDFiJv/secs_pr_day
    else
-    tDAgeFish = 0.0_rk
+       tDAgeFish = 0.0_rk
    endif
 !  Ageing_P
    tPAgeFish = rPDFiJv * tDAgeFish
@@ -774,19 +741,19 @@
 !-----------------------------------------------------------------------
 !  If benthivorous fish manipulation tured on
    If(self%Manipulate_FiAd) then
-     tDManFiAd= sDFiAd*rManFiAd/secs_pr_day
+     tDManFiAd= sDFiAd * log(1+rManFiAd)/secs_pr_day
    else
      tDManFiAd = 0.0_rk
    endif
 !  If zooplanktivorous manipulation tured on
    If(self%Manipulate_FiJv) then
-      tDManFiJv= sDFiJv*rManFiJv/secs_pr_day
+      tDManFiJv= sDFiJv * log(1+rManFiJv)/secs_pr_day
    else
       tDManFiJv = 0.0_rk
    endif
 !  If piscivorous fish manipulation tured on
    If(self%Manipulate_Pisc) then
-      tDManPisc= sDPisc*rManPisc/secs_pr_day
+      tDManPisc= sDPisc * log(1+rManPisc)/secs_pr_day
    else
       tDManPisc = 0.0_rk
    endif
@@ -799,31 +766,31 @@
 !  total flux of Fish change to state variables
 !-----------------------------------------------------------------------
 !  total_fish_flux_of_DW_in_Young_fish
-   tDFiJv = tDMigrFiJv + tDReprFish + tDAssFiJv - tDRespFiJv - tDMortFiJv - tDConsFiJvPisc - tDAgeFish - tDManFiJv
+   tDFiJv = tDMigrFiJv + tDReprFish + tDAssFiJv - tDRespFiJv - tDMortFiJv - tDConsFiJvPisc - tDAgeFish + tDManFiJv
 !  temperal solution, vertial averaged
    wDFiJv=tDFiJv/sDepthW
 !  total_fish_flux_of_P_in_Young_fish
-   tPFiJv = tPMigrFiJv + tPReprFish  + tPAssFiJv - tPExcrFiJv - tPMortFiJv - tPConsFiJvPisc - tPAgeFish - tNManFiJv
+   tPFiJv = tPMigrFiJv + tPReprFish  + tPAssFiJv - tPExcrFiJv - tPMortFiJv - tPConsFiJvPisc - tPAgeFish + tNManFiJv
 !  temperal solution, vertial averaged
    wPFiJv = tPFiJv/sDepthW
 !  total_fish_flux_of_N_in_Young_fish
-   tNFiJv = tNMigrFiJv + tNReprFish + tNAssFiJv - tNExcrFiJv - tNMortFiJv - tNConsFiJvPisc - tNAgeFish - tPManFiJv
+   tNFiJv = tNMigrFiJv + tNReprFish + tNAssFiJv - tNExcrFiJv - tNMortFiJv - tNConsFiJvPisc - tNAgeFish + tPManFiJv
 !  temperal solution, vertial averaged
    wNFiJv= tNFiJv/ sDepthW
 !  total_fish_flux_of_DW_in_Adult_fish
-   tDFiAd = tDMigrFiAd - tDRespFiAd - tDReprFish - tDConsFiAdPisc + tDAgeFish- tDManFiAd - tDMortFiAd
+   tDFiAd = tDMigrFiAd - tDRespFiAd - tDMortFiAd - tDReprFish - tDConsFiAdPisc + tDAgeFish+ tDManFiAd 
 !  temperal solution, vertial averaged
    wDFiAd= tDFiAd/ sDepthW
 !  total_fish_flux_of_P_in_Adult_fish
-   tPFiAd = tPMigrFiAd  - tPExcrFiAd - tPMortFiAd - tPReprFish - tPConsFiAdPisc + tPAgeFish - tPManFiAd
+   tPFiAd = tPMigrFiAd  - tPExcrFiAd - tPMortFiAd - tPReprFish - tPConsFiAdPisc + tPAgeFish + tPManFiAd
 !  temperal solution, vertial averaged
    wPFiAd= tPFiAd/ sDepthW
 !  total_fish_flux_of_N_in_Adult_fish
-   tNFiAd = tNMigrFiAd - tNExcrFiAd - tNMortFiAd - tNReprFish - tNConsFiAdPisc + tNAgeFish - tNManFiAd
+   tNFiAd = tNMigrFiAd - tNExcrFiAd - tNMortFiAd - tNReprFish - tNConsFiAdPisc + tNAgeFish + tNManFiAd
 !  temperal solution, vertial averaged
    wNFiAd= tNFiAd/ sDepthW
 !  total_fish_flux_of_DW_in_predatory_fish
-   tDPisc = tDMigrPisc + tDAssPisc - tDRespPisc - tDMortPisc - tDManPisc
+   tDPisc = tDMigrPisc + tDAssPisc - tDRespPisc - tDMortPisc + tDManPisc
    wDPisc=tDPisc/sDepthW
 !=======================================================================
 !  fish processes relating to other modules
@@ -888,7 +855,9 @@
 !  part_of_died_Pisc_DW_becoming_detritus
    tDMortPiscDet = tDMortPisc - tDMortPiscBot
 !  total_fish_flux_of_DW_in_Detritus_in_lake_water
-   wDFishDetW = (tDEgesFiJv + tDMortFishDet + tDEgesPisc + tDMortPiscDet)/sDepthW
+   wDFishDetW_tot = (tDEgesFiJv + tDMortFishDet + tDEgesPisc + tDMortPiscDet)/sDepthW
+   wDFishDetW  = wDFishDetW_tot * (1.0_rk - self%fDisFisDetW)
+   wDFishDisDetW = wDFishDetW_tot * self%fDisFisDetW
 !-----------------------------------------------------------------------
 !  Update detrital N in water
 !-----------------------------------------------------------------------
@@ -901,7 +870,9 @@
 !  detrital_N_egestion_of_young_fish
    tNEgesFiJvDet = tNEgesFiJv - tNEgesFiJvNH4
 !  total_fish_flux_of_N_in_Detritus_in_lake_water
-   wNFishDetW = (tNEgesFiJvDet + tNMortFishDet + tNEgesPiscDet + tNMortPiscDet)/sDepthW
+   wNFishDetW_tot = (tNEgesFiJvDet + tNMortFishDet + tNEgesPiscDet + tNMortPiscDet)/sDepthW
+   wNFishDetW  = wNFishDetW_tot * (1.0_rk - self%fDisFisDetW)
+   wNFishDisDetW = wNFishDetW_tot * self%fDisFisDetW
 !-----------------------------------------------------------------------
 !  Update detrital P in water
 !-----------------------------------------------------------------------
@@ -914,7 +885,9 @@
 !  detrital_P_egestion_of_young_fish
    tPEgesFiJvDet = tPEgesFiJv - tPEgesFiJvPO4
 !  total_fish_flux_of_P_in_Detritus_in_lake_water
-   wPFishDetW = (tPEgesFiJvDet + tPMortFishDet + tPEgesPiscDet + tPMortPiscDet)/sDepthW
+   wPFishDetW_tot = (tPEgesFiJvDet + tPMortFishDet + tPEgesPiscDet + tPMortPiscDet)/sDepthW
+   wPFishDetW  = wPFishDetW_tot * (1.0_rk - self%fDisFisDetW)
+   wPFishDisDetW = wPFishDetW_tot * self%fDisFisDetW
 !-----------------------------------------------------------------------
 !  Update local state variables
 !-----------------------------------------------------------------------
@@ -937,25 +910,27 @@
    _SET_ODE_(self%id_DFoodZoo,  -tDConsFiJv/sDepthW)
    _SET_ODE_(self%id_NFoodZoo,  -tNConsFiJv/sDepthW)
    _SET_ODE_(self%id_PFoodZoo,  -tPConsFiJv/sDepthW)
+   _SET_ODE_(self%id_DDisDetpoolW, wDFishDisDetW)
+   _SET_ODE_(self%id_NDisDetpoolW, wNFishDisDetW)
+   _SET_ODE_(self%id_PDisDetpoolW, wPFishDisDetW)
 !-----------------------------------------------------------------------
 !  output diagnostic variables for external links
 !-----------------------------------------------------------------------
 !  Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_aNPisc,aNPisc)
    _SET_DIAGNOSTIC_(self%id_aPPisc,aPPisc)
-
+#ifdef _DEVELOPMENT_
 !  output diagnostic variables for modular fluxes
-   _SET_DIAGNOSTIC_(self%id_wDFiJv,    wDFiJv*86400.0_rk)
-   _SET_DIAGNOSTIC_(self%id_wPFiJv,    wPFiJv*86400.0_rk)
-   _SET_DIAGNOSTIC_(self%id_wNFiJv,    wNFiJv*86400.0_rk)
-   _SET_DIAGNOSTIC_(self%id_wDPisc,    wDPisc*86400.0_rk)
-   _SET_DIAGNOSTIC_(self%id_wDFishZoo, -tDConsFiJv/sDepthW*86400.0_rk)
-   _SET_DIAGNOSTIC_(self%id_wNFishZoo, -tNConsFiJv/sDepthW*86400.0_rk)
-   _SET_DIAGNOSTIC_(self%id_wPFishZoo, -tPConsFiJv/sDepthW*86400.0_rk)
+   _SET_DIAGNOSTIC_(self%id_wDFiJv,    wDFiJv*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_wPFiJv,    wPFiJv*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_wNFiJv,    wNFiJv*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_wDPisc,    wDPisc*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_wDFishZoo, -tDConsFiJv/sDepthW*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_wNFishZoo, -tNConsFiJv/sDepthW*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_wPFishZoo, -tPConsFiJv/sDepthW*secs_pr_day)
 !  feh: This temperal solution
 !  feh: all the variables are connected to tMortFiAd, which has dependency on
-!  external variables, so can not be updated at the first time step, or 37*4
-!  calc. step. therefore, set this little higher
+!  external variables, so can not be updated at the first time step
    if (n .GE.1000) then
       _SET_DIAGNOSTIC_(self%id_wDFiAd,     wDFiAd*86400.0_rk)
       _SET_DIAGNOSTIC_(self%id_wPFiAd,     wPFiAd*86400.0_rk)
@@ -976,64 +951,27 @@
       _SET_DIAGNOSTIC_(self%id_wPFishDetW, 0.0_rk)
    endif
    n=n+1
+#endif
 !-----------------------------------------------------------------------
 !  Updated changed fish biomass for biomanipulation
 !-----------------------------------------------------------------------
 !  If benthivorous fish manipulation tured on
-   If(self%Manipulate_FiAd) then
-     _SET_ODE_(self%id_ChangedFiAd,tDManFiAd)
-   endif
+   _SET_ODE_(self%id_ChangedFiAd,tDManFiAd)
 !  If zooplanktivorous manipulation tured on
-   If(self%Manipulate_FiJv) then
-     _SET_ODE_(self%id_ChangedFiJv,tDManFiJv)
-   endif
+   _SET_ODE_(self%id_ChangedFiJv,tDManFiJv)
 !  If Piscivorous fish manipulation tured ontPEgesFiAdDet
-   If(self%Manipulate_Pisc) then
-     _SET_ODE_(self%id_ChangedPisc,tDManPisc)
-   endif
-
-
-   _LOOP_END_
+   _SET_ODE_(self%id_ChangedPisc,tDManPisc)
 ! Spatial loop end
+   _LOOP_END_
+
 !
 !EOP
 !-----------------------------------------------------------------------
 
    end subroutine do
-!BOP
-!IROUTINE: Get the light extinction coefficient due to biogeochemical variables
-! !DESCRIPTION:
-! !INTERFACE:
-   subroutine get_light_extinction(self,_ARGUMENTS_GET_EXTINCTION_)
-!
-! !INPUT PARAMETERS:
-   class (type_au_pclake_fish), intent(in) :: self
-   _DECLARE_ARGUMENTS_GET_EXTINCTION_
-!
-! !REVISION HISTORY:
-!  Original author(s):
-!
-! !LOCAL VARIABLES:
 
-
-!EOP
-!-----------------------------------------------------------------------
-!BOC
-   ! Enter spatial loops (if any)
-   _LOOP_BEGIN_
-
-   !! Retrieve current (local) state variable values.
-
-   !
-   !! Self-shading with explicit contribution from background
-   ! Leave spatial loops (if any)
-   _LOOP_END_
-
-   end subroutine get_light_extinction
 !EOC
 !-----------------------------------------------------------------------
-
-
    end module au_pclake_fish
 
 !------------------------------------------------------------------------------
