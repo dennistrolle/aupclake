@@ -18,44 +18,54 @@
    type, extends(type_base_model),public :: type_au_pclake_abiotic_water
 !  local state variable identifiers
 !  sDIMW: inorganic matter concentration, in dry-weight, gDW/m**3
-!  sDDetW, detritus concentration, in dry-weight, gDW/m**3
-!  sNDetW, detritus concentration, in nitrogen element, gN/m**3
-!  sPDetW, detritus concentration, in phosphorus element, gP/m**3
+!  sDPOMW, partical organic matter concentration, in dry-weight, gDW/m**3
+!  sNPOMW, partical organic matter concentration, in nitrogen element, gN/m**3
+!  sPPOMW, partical organic matter concentration, in phosphorus element, gP/m**3
+!  sSiPOMW, partical organic matter concentration, in silicon element, gSi/m**3
+!  sNH4W,  Ammonium concentration, in nitrogen element,gN/m**3
+!  sDDOMW, dissolved organic matter concentration, in dry-weight, gDW/m**3
+!  sNDOMW, dissolved organic matter concentration, in nitrogen element, gN/m**3
+!  sPDOMW, dissolved organic matter concentration, in phosphorus element, gP/m**3
+!  sSidOMW, dissolved organic matter concentration, in silicon element, gSi/m**3
 !  sNH4W,  Ammonium concentration, in nitrogen element,gN/m**3
 !  sNO3W,  nitrate concentration, in nitrogen element,gN/m**3
 !  sPO4W,  phosphate concentration, in phosphorus element,gP/m**3
 !  sPAIMW, absorbed phosphorus concentration, in phosphorus element,gP/m**3
 !  sSiO2W, silica dioxide concentration, in silica element,gSi/m**3
 !  sO2W,   dissolved oxygen, in O2 molecule,gO2/m**3
-   type (type_state_variable_id)   :: id_sDIMW,id_sDDetW,id_sNDetW,id_sPDetW,id_sSiDetW
+   type (type_state_variable_id)   :: id_sDIMW,id_sDPOMW,id_sNPOMW,id_sPPOMW,id_sSiPOMW
    type (type_state_variable_id)   :: id_sPO4W,id_sPAIMW,id_sNH4W,id_sNO3W
    type (type_state_variable_id)   :: id_sSiO2W,id_sO2W
-!  dissolved detritus
-   type (type_state_variable_id)   :: id_sDDisDetW,id_sNDisDetW,id_sPDisDetW,id_sSiDisDetW 
+!  dissolved organic matter
+   type (type_state_variable_id)   :: id_sDDOMW,id_sNDOMW,id_sPDOMW,id_sSiDOMW 
 !  diagnostic variables for local output
-!  rPDDetW: P/D ratio of detritus
-!  rNDDetW: N/D ratio of detritus
+!  rPDPOMW: P/D ratio of partical organic matter
+!  rNDPOMW: N/D ratio of partical organic matter
+!  rPDDOMW: P/D ratio of dissolved organic matter
+!  rNDDOMW: N/D ratio of dissolved organic matter
 !  wO2AbioW: abiotic water column oxygen consumption
 !  tO2Aer: O2 reaeration rate at the water surface
-   type (type_diagnostic_variable_id)           :: id_rPDDetW,id_rNDDetW
-   type (type_diagnostic_variable_id)           :: id_extIM,id_extDet
+   type (type_diagnostic_variable_id)           :: id_rPDPOMW,id_rNDPOMW
+   type (type_diagnostic_variable_id)           :: id_rPDDOMW,id_rNDDOMW
+   type (type_diagnostic_variable_id)           :: id_extIM,id_extPOM
    type (type_horizontal_diagnostic_variable_id):: id_wind,id_tO2Aer
-!  diagnostic variables for the total fluexes for state variables from abiotic_module
-   type (type_diagnostic_variable_id):: id_wDAbioDetW,id_wPAbioDetW,id_wNAbioDetW,id_wSiAbioDetW
+   type (type_diagnostic_variable_id):: id_wSiAbioDOMW,id_wDAbioDOMW,id_wPAbioDOMW,id_wNAbioDOMW
 #ifdef _DEVELOPMENT_
-   type (type_diagnostic_variable_id):: id_wPAbioPO4W,id_wPAbioAIMW,id_wNAbioNH4W
-   type (type_diagnostic_variable_id):: id_wNAbioNO3W,id_wSiAbioSiO2W,id_wO2AbioW,id_wDAbioIMW
+!  diagnostic variables for the total fluexes for state variables from abiotic_module
+   type (type_diagnostic_variable_id):: id_wDAbioIMW,id_wPAbioPO4W,id_wPAbioAIMW,id_wNAbioNH4W
+   type (type_diagnostic_variable_id):: id_wNAbioNO3W,id_wSiAbioSiO2W,id_wO2AbioW
 #endif
 !  environmental dependencies
    type (type_dependency_id)                :: id_uTm
    type (type_horizontal_dependency_id)     :: id_uVWind
 !  Model parameters
 !! Mineralization process, splited into 2 steps
-!  First step min. pars
-   real(rk)                   :: cThetaMinW_1, kDMinDetW_1
-!  Second step min. pars
-   real(rk)                   :: cThetaMinW,kDMinDetW,kNMinDetW
-   real(rk)                   :: kPMinDetW,kSiMinDetW
+!  from POM to DOM
+   real(rk)                   :: cThetaMinPOMW, kDMinPOMW,kNMinPOMW
+   real(rk)                   :: kPMinPOMw,kSiMinPOMW
+!  from DOM to dissolved nutrients
+   real(rk)                   :: cThetaMinDOMW,kDMinDOMW,kNMinDOMW
+   real(rk)                   :: kPMinDOMW,kSiMinDOMW
 !! nitrification pars
    real(rk)                   :: kNitrW,cThetaNitr,hO2Nitr
    real(rk)                   :: cThetaAer,cCPerDW,hO2BOD,O2PerNH4
@@ -63,9 +73,9 @@
    real(rk)                   :: cRelPAdsFe,fFeDIM,cRelPAdsAl,fAlDIM
    real(rk)                   :: fRedMax,cKPAdsOx
 !  sinking parameter
-   real(rk)                   :: cVSetIM,cVSetDet
+   real(rk)                   :: cVSetIM,cVSetPOM
 !  parameter for specific light attenuation coefficient
-   real(rk)                   :: cExtSpIM,cExtSpDet
+   real(rk)                   :: cExtSpIM,cExtSpPOM
 !  minimun state variable vaules
    real(rk)   :: cDVegMin, cNVegMin,cPVegMin
 
@@ -114,86 +124,91 @@
 !  Store parameter values in our own derived type
 !  NB: all rates must be provided in values per day,
 !  and are converted here to values per second.
-   call self%get_parameter(self%cCPerDW,   'cCPerDW',   'gC/gDW', 'C content of organic matter',                              default=0.4_rk)
-   call self%get_parameter(self%cExtSpDet, 'cExtSpDet', 'm2/gDW', 'specific extinction detritus',                             default=0.15_rk)
-   call self%get_parameter(self%cExtSpIM,  'cExtSpIM',  'm2/gDW', 'specific extinction inert matter',                         default=0.05_rk)
-   call self%get_parameter(self%cKPAdsOx,  'cKPAdsOx',  'm3/gP',  'P adsorption affinity at oxidized conditions',             default=0.6_rk)
-   call self%get_parameter(self%cRelPAdsAl,'cRelPAdsAl','gP/gAl', 'max. P adsorption per g Al',                               default=0.134_rk)
-   call self%get_parameter(self%cRelPAdsD, 'cRelPAdsD', 'gP/gD',  'max. P adsorption per g DW',                               default=0.00003_rk)
-   call self%get_parameter(self%cRelPAdsFe,'cRelPAdsFe','gP/gFe', 'max. P adsorption per g Fe',                               default=0.065_rk)
-   call self%get_parameter(self%cThetaAer, 'cThetaAer', '1/e^oC', 'temperature coeff. for reaeration',                        default=1.024_rk)
-   call self%get_parameter(self%cThetaNitr,'cThetaNitr','[-]',    'temperature coefficient for nitrification',                default=1.08_rk)
-   call self%get_parameter(self%cVSetDet,  'cVSetDet',  'm/day',  'max. sedimentation velocity of detritus',                  default=-0.25_rk,scale_factor=1.0_rk/secs_pr_day)
-   call self%get_parameter(self%cVSetIM,   'cVSetIM',   'm/day',  'max. sedimentation velocity of inert org. matter',         default=-1.0_rk, scale_factor=1.0_rk/secs_pr_day)
-   call self%get_parameter(self%fAlDIM,    'fAlDIM',    'gAl/gD', 'Al content of inorg. matter',                              default=0.01_rk)
-   call self%get_parameter(self%fFeDIM,    'fFeDIM',    'gFe/gD', 'Fe content of inorg. matter',                              default=0.01_rk)
-   call self%get_parameter(self%fRedMax,   'fRedMax',   '[-]',    'max. reduction factor of P adsorption affinity',           default=0.9_rk)
-   call self%get_parameter(self%hNO3Denit, 'hNO3Denit', 'mgN/l',  'quadratic half-sat. NO3 conc. for denitrification',        default=2.0_rk)
-   call self%get_parameter(self%hO2BOD,    'hO2BOD',    'mgO2/l', 'half-sat. oxygen conc. for BOD',                           default=1.0_rk)
-   call self%get_parameter(self%hO2Nitr,   'hO2Nitr',   'mgO2/l', 'half-sat. oxygen conc. for for nitrogen',                   default=2.0_rk)
-   call self%get_parameter(self%kNitrW,    'kNitrW',    'day-1',  'nitrification rate constant in water',                     default=0.1_rk, scale_factor=1.0_rk/secs_pr_day)
-   call self%get_parameter(self%kPSorp,    'kPSorp',    'day-1',  'P adsorption rate constant not too high -> model speed day', default=0.05_rk,scale_factor=1.0_rk/secs_pr_day)
-   call self%get_parameter(self%NO3PerC,   'NO3PerC',   'molNO3', 'denitrified NO3 per mol C mineralised',                        default=0.8_rk)
-   call self%get_parameter(self%O2PerNH4,  'O2PerNH4',  'molO2',  'used O2 per mol NH4+ nitrified',                              default=2.0_rk)
-!  Mineralization 
-!  Step 1 min. pars
-   call self%get_parameter(self%cThetaMinW_1,'cThetaMinW_1','[-]',  'temperature coeff. step_1 mineralization',             default=1.07_rk)
-   call self%get_parameter(self%kDMinDetW_1, 'kDMinDetW_1', 'day-1','decomposition constant for step_1 min.',               default=0.01_rk,scale_factor=1.0_rk/secs_pr_day)
-!  Step 2 min. pars
-   call self%get_parameter(self%cThetaMinW, 'cThetaMinW', '[-]',    'temperature coeff. step_2 mineralization',               default=1.07_rk)
-   call self%get_parameter(self%kDMinDetW,  'kDMinDetW',  'day-1',  'decomposition constant of dissolved organics',           default=0.01_rk,scale_factor=1.0_rk/secs_pr_day)
-   call self%get_parameter(self%kNMinDetW,  'kNMinDetW',  'day-1',  'decomposition constant of organic-N',                    default=0.01_rk,scale_factor=1.0_rk/secs_pr_day)
-   call self%get_parameter(self%kPMinDetW,  'kPMinDetW',  'day-1',  'decomposition constant of organic-P',                    default=0.01_rk,scale_factor=1.0_rk/secs_pr_day)
-   call self%get_parameter(self%kSiMinDetW, 'kSiMinDetW', 'day-1',  'decomposition constant of organic-Si',                   default=0.01_rk,scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%cCPerDW,        'cCPerDW',      'gC/gDW', 'C content of organic matter',                                default=0.4_rk)
+   call self%get_parameter(self%cExtSpPOM,      'cExtSpPOM',    'm2/gDW', 'specific extinction factor for partical organics',           default=0.15_rk)
+   call self%get_parameter(self%cExtSpIM,       'cExtSpIM',     'm2/gDW', 'specific extinction inorganic matter',                       default=0.05_rk)
+   call self%get_parameter(self%cKPAdsOx,       'cKPAdsOx',     'm3/gP',  'P adsorption affinity at oxidized conditions',               default=0.6_rk)
+   call self%get_parameter(self%cRelPAdsAl,     'cRelPAdsAl',   'gP/gAl', 'maximum P adsorption per g Al',                              default=0.134_rk)
+   call self%get_parameter(self%cRelPAdsD,      'cRelPAdsD',    'gP/gD',  'maximum P adsorption per g DW',                              default=0.00003_rk)
+   call self%get_parameter(self%cRelPAdsFe,     'cRelPAdsFe',   'gP/gFe', 'maximum P adsorption per g Fe',                              default=0.065_rk)
+   call self%get_parameter(self%cThetaAer,      'cThetaAer',    '1/e^oC', 'temperature coefficient for reaeration',                     default=1.024_rk)
+   call self%get_parameter(self%cThetaNitr,     'cThetaNitr',   '[-]',    'temperature coefficient for nitrification',                  default=1.08_rk)
+   call self%get_parameter(self%cVSetPOM,       'cVSetPOM',     'm/day',  'maximum sedimentation velocity of partical orgaincs',        default=-0.25_rk,scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%cVSetIM,        'cVSetIM',      'm/day',  'maximum sedimentation velocity of iorganic matter',          default=-1.0_rk, scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%fAlDIM,         'fAlDIM',       'gAl/gD', 'Al content of inorganic matter',                             default=0.01_rk)
+   call self%get_parameter(self%fFeDIM,         'fFeDIM',       'gFe/gD', 'Fe content of inorganic matter',                             default=0.01_rk)
+   call self%get_parameter(self%fRedMax,        'fRedMax',      '[-]',    'maximum reduction factor of P adsorption affinity',          default=0.9_rk)
+   call self%get_parameter(self%hNO3Denit,      'hNO3Denit',    'mgN/l',  'quadratic half saturation NO3 conc. for denitrification',    default=2.0_rk)
+   call self%get_parameter(self%hO2BOD,         'hO2BOD',       'mgO2/l', 'half saturation oxygen concentration for BOD',               default=1.0_rk)
+   call self%get_parameter(self%hO2Nitr,        'hO2Nitr',      'mgO2/l', 'half saturation oxygen concentration for for nitrogen',      default=2.0_rk)
+   call self%get_parameter(self%kNitrW,         'kNitrW',       'day-1',  'nitrification rate constant in water',                       default=0.1_rk, scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%kPSorp,         'kPSorp',       'day-1',  'P adsorption rate constant not too high -> model speed day', default=0.05_rk,scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%NO3PerC,        'NO3PerC',      'molNO3', 'denitrified NO3 per mol C mineralised',                      default=0.8_rk)
+   call self%get_parameter(self%O2PerNH4,       'O2PerNH4',     'molO2',  'used O2 per mol NH4+ nitrified',                             default=2.0_rk)
+!  Mineralization parameters
+!  from POM to DOM
+   call self%get_parameter(self%cThetaMinPOMW,  'cThetaMinPOMW','[-]',    'temperature coefficient for mineralization from POM to DOM',       default=1.07_rk)
+   call self%get_parameter(self%kDMinPOMW,      'kDMinPOMW',    'day-1',  'decomposition constant for mineralization from POM-DW to DOM-DW',  default=0.01_rk,scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%kNMinPOMW,      'kNMinPOMW',    'day-1',  'decomposition constant for mineralization from POM-N to DOM-N',    default=0.01_rk,scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%kPMinPOMW,      'kPMinPOMW',    'day-1',  'decomposition constant for mineralization from POM-P to DOM-P',    default=0.01_rk,scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%kSiMinPOMW,     'kSiMinPOMW',   'day-1',  'decomposition constant for mineralization from POM-Si to DOM-Si',  default=0.01_rk,scale_factor=1.0_rk/secs_pr_day)
+!  from DOM to dissolved nutrients
+   call self%get_parameter(self%cThetaMinDOMW,  'cThetaMinDOMW',    '[-]', 'temperature coefficient for DOM mineralization',               default=1.07_rk)
+   call self%get_parameter(self%kDMinDOMW,      'kDMinDOMW',     'day-1',  'decomposition constant of dissolved organic-DW',               default=0.01_rk,scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%kNMinDOMW,      'kNMinDOMW',     'day-1',  'decomposition constant of dissolved organic-N',                default=0.01_rk,scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%kPMinDOMW,      'kPMinDOMW',     'day-1',  'decomposition constant of dissolved organic-P',                default=0.01_rk,scale_factor=1.0_rk/secs_pr_day)
+   call self%get_parameter(self%kSiMinDOMW,     'kSiMinDOMW',    'day-1',  'decomposition constant of dissolved organic-Si',               default=0.01_rk,scale_factor=1.0_rk/secs_pr_day)
 !  Register local state variable
-!  particles, including inorganic matter(sDIM) and organic matter(sDDetW,sNDetW,sPDetW,sSiDetW) have
+!  particles, including inorganic matter(sDIM) and organic matter(sDPOMW,sNPOMW,sPPOMW,sSiPOMW) have
 !  vertical movement, usually settling(negative values)
    call self%register_state_variable(self%id_sDIMW,'sDIMW','g m-3','inorganic matter in water',           &
                                     initial_value=5.0_rk,  minimum=_ZERO_, vertical_movement= self%cVSetIM,no_river_dilution=.TRUE.)
-!  detritus
-   call self%register_state_variable(self%id_sDDetW,'sDDetW','g m-3','detritus dry-weight in water',    &
-                                    initial_value=1.0_rk,  minimum=_ZERO_, vertical_movement= self%cVSetDet,no_river_dilution=.TRUE.)
-   call self%register_state_variable(self%id_sPDetW,'sPDetW','g m-3','detritus phosphorus in water',     &
-                                    initial_value=0.005_rk,minimum=_ZERO_,vertical_movement= self%cVSetDet,no_river_dilution=.FALSE.)
-   call self%register_state_variable(self%id_sNDetW,'sNDetW','g m-3','detritus nitrogen in water',      &
-                                    initial_value=0.05_rk ,minimum=_ZERO_,vertical_movement=self%cVSetDet,no_river_dilution=.FALSE.)
-   call self%register_state_variable(self%id_sSiDetW,'sSiDetW','g m-3','detritus silica in water',      &
-                                    initial_value=0.02_rk, minimum=_ZERO_,vertical_movement= self%cVSetDet,no_river_dilution=.TRUE.)
+!  partical organics
+   call self%register_state_variable(self%id_sDPOMW,'sDPOMW','g m-3','partical organic matter dry-weight in water',    &
+                                    initial_value=1.0_rk,  minimum=_ZERO_, vertical_movement= self%cVSetPOM,no_river_dilution=.TRUE.)
+   call self%register_state_variable(self%id_sPPOMW,'sPPOMW','g m-3','partical organic matter phosphorus in water',     &
+                                    initial_value=0.005_rk,minimum=_ZERO_,vertical_movement= self%cVSetPOM,no_river_dilution=.TRUE.)
+   call self%register_state_variable(self%id_sNPOMW,'sNPOMW','g m-3','partical organic matter nitrogen in water',      &
+                                    initial_value=0.05_rk ,minimum=_ZERO_,vertical_movement=self%cVSetPOM,no_river_dilution=.TRUE.)
+   call self%register_state_variable(self%id_sSiPOMW,'sSiPOMW','g m-3','partical organic matter silica in water',      &
+                                    initial_value=0.02_rk, minimum=_ZERO_,vertical_movement= self%cVSetPOM,no_river_dilution=.TRUE.)
+!  dissolved organics
+   call self%register_state_variable(self%id_sDDOMW,'sDDOMW','g m-3','dissolved organic matter DW',     &
+                                    initial_value=1.0_rk,minimum=_ZERO_,no_river_dilution=.TRUE.)
+   call self%register_state_variable(self%id_sNDOMW,'sNDOMW','g m-3','dissolved organic matter N',     &
+                                    initial_value=0.025_rk,minimum=_ZERO_,no_river_dilution=.TRUE.)
+   call self%register_state_variable(self%id_sPDOMW,'sPDOMW','g m-3','dissolved organic matter P',     &
+                                    initial_value=0.0025_rk,minimum=_ZERO_,no_river_dilution=.TRUE.)
+   call self%register_state_variable(self%id_sSiDOMW,'sSiDOMW','g m-3','dissolved organic matter P',     &
+                                    initial_value=0.0125_rk,minimum=_ZERO_,no_river_dilution=.TRUE.)
 !  dissolved nutrients
    call self%register_state_variable(self%id_sPO4W,  'sPO4W',   'g m-3','phosphate in water',     &
-                                    initial_value=0.01_rk, minimum=_ZERO_,no_river_dilution=.FALSE.)
+                                    initial_value=0.01_rk, minimum=_ZERO_,no_river_dilution=.TRUE.)
    call self%register_state_variable(self%id_sPAIMW,'sPAIMW','g m-3','absorbed_P in water',     &
                                     initial_value=0.0_rk,minimum=_ZERO_,vertical_movement= self%cVSetIM,no_river_dilution=.TRUE.)
    call self%register_state_variable(self%id_sNH4W,'sNH4W','g m-3','ammonium in water',     &
-                                    initial_value=0.1_rk,minimum=_ZERO_,no_river_dilution=.FALSE.)
+                                    initial_value=0.1_rk,minimum=_ZERO_,no_river_dilution=.TRUE.)
    call self%register_state_variable(self%id_sNO3W,'sNO3W','g m-3','nitrate in water',     &
-                                    initial_value=0.1_rk,minimum=_ZERO_,no_river_dilution=.FALSE.)
+                                    initial_value=0.1_rk,minimum=_ZERO_,no_river_dilution=.TRUE.)
    call self%register_state_variable(self%id_sSiO2W,'sSiO2W','g m-3','Silica dioxide in water',     &
                                     initial_value=3.0_rk,minimum=_ZERO_,no_river_dilution=.TRUE.)
 !  oxygen
    call self%register_state_variable(self%id_sO2W,'sO2W','g m-3','oxygen in water',     &
                                     initial_value=10.0_rk,minimum=_ZERO_,no_river_dilution=.TRUE.)
-!  register dissolved detritus
-   call self%register_state_variable(self%id_sDDisDetW,'sDDisDetW','g m-3','dissolved detritus DW',     &
-                                    initial_value=1.0_rk,minimum=_ZERO_,no_river_dilution=.TRUE.)
-   call self%register_state_variable(self%id_sNDisDetW,'sNDisDetW','g m-3','dissolved detritus N',     &
-                                    initial_value=0.025_rk,minimum=_ZERO_,no_river_dilution=.TRUE.)
-   call self%register_state_variable(self%id_sPDisDetW,'sPDisDetW','g m-3','dissolved detritus P',     &
-                                    initial_value=0.0025_rk,minimum=_ZERO_,no_river_dilution=.TRUE.)
-   call self%register_state_variable(self%id_sSiDisDetW,'sSiDisDetW','g m-3','dissolved detritus P',     &
-                                    initial_value=0.0125_rk,minimum=_ZERO_,no_river_dilution=.TRUE.)
 
 !  Register diagnostic variables for dependencies in other modules
-   call self%register_diagnostic_variable(self%id_rPDDetW, 'rPDDetW',   '[-]',       'detritus_P/D_ratio_wat',   output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_rNDDetW, 'rNDDetW',   '[-]',       'detritus_N/D_ratio_wat',   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_rPDPOMW, 'rPDPOMW',   '[-]',       'partical organic matter P/D ratio in water',   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_rNDPOMW, 'rNDPOMW',   '[-]',       'partical organic matter N/D ratio in water',   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_rPDDOMW, 'rPDDOMW',   '[-]',       'dissolved organic matter P/D ratio in water',   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_rNDDOMW, 'rNDDOMW',   '[-]',       'dissolved organic matter N/D ratio in water',   output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_wind,    'wind',      'm/s',       'windspeed',                output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_extIM,   'extIM',     '[-]',       'extIM',                    output=output_instantaneous, source=source_get_light_extinction)
-   call self%register_diagnostic_variable(self%id_extDet,  'extDet',    '[-]',       'extDet',                   output=output_instantaneous, source=source_get_light_extinction)
-   call self%register_diagnostic_variable(self%id_tO2Aer,      'tO2Aer',       'g m-2 s-1', 'O2_reareation',               output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wDAbioDetW,  'wDAbioDetW',   'g m-3 s-1', 'abiotic_water_DDetW_change',  output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wPAbioDetW,  'wPAbioDetW',   'g m-3 s-1', 'abiotic_water_PDetW_change',  output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wNAbioDetW,  'wNAbioDetW',   'g m-3 s-1', 'abiotic_water_NDetW_change',  output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wSiAbioDetW, 'wSiAbioDetW',  'g m-3 s-1', 'abiotic_water_SiDetW_change', output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_extIM,   'extIM',     '[-]',       'extIM',                    output=output_instantaneous,source=source_get_light_extinction)
+   call self%register_diagnostic_variable(self%id_extPOM,  'extPOM',    '[-]',       'extPOM',                   output=output_instantaneous,source=source_get_light_extinction)
+   call self%register_diagnostic_variable(self%id_tO2Aer,  'tO2Aer',    'g m-2 s-1', 'O2_reareation',            output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wDAbioDOMW,  'wDAbioDOMW',   'g m-3 s-1', 'abiotic_water_DDOMW_change',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wPAbioDOMW,  'wPAbioDOMW',   'g m-3 s-1', 'abiotic_water_PDOMW_change',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wNAbioDOMW,  'wNAbioDOMW',   'g m-3 s-1', 'abiotic_water_NDOMW_change',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wSiAbioDOMW, 'wSiAbioDOMW',  'g m-3 s-1', 'abiotic_water_SiDOMW_change', output=output_instantaneous)
 #ifdef _DEVELOPMENT_
 !  Register diagnostic variables for modular fluexes for state variables
    call self%register_diagnostic_variable(self%id_wDAbioIMW,   'wDAbioIMW',    'g m-3 s-1', 'abiotic_water_IMW_change',    output=output_instantaneous)
@@ -205,23 +220,23 @@
    call self%register_diagnostic_variable(self%id_wO2AbioW,    'wO2AbioW',     'g m-3 s-1', 'abiotic_water_O2_change',     output=output_instantaneous)
 #endif
 !  Register contribution of state to global aggregate variables
-   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,              self%id_sNDetW)
+   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,              self%id_sNPOMW)
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,              self%id_sNH4W)
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,              self%id_sNO3W)
    call self%add_to_aggregate_variable(standard_variables%total_phosphorus,            self%id_sPO4W)
    call self%add_to_aggregate_variable(standard_variables%total_phosphorus,            self%id_sPAIMW)
-   call self%add_to_aggregate_variable(standard_variables%total_phosphorus,            self%id_sPDetW)
+   call self%add_to_aggregate_variable(standard_variables%total_phosphorus,            self%id_sPPOMW)
    call self%add_to_aggregate_variable(standard_variables%total_silicate,              self%id_sSiO2W)
-   call self%add_to_aggregate_variable(standard_variables%total_silicate,              self%id_sSiDetW)
-   call self%add_to_aggregate_variable(type_bulk_standard_variable(name='pclake_totN'),self%id_sNDetW)
+   call self%add_to_aggregate_variable(standard_variables%total_silicate,              self%id_sSiPOMW)
+   call self%add_to_aggregate_variable(type_bulk_standard_variable(name='pclake_totN'),self%id_sNPOMW)
    call self%add_to_aggregate_variable(type_bulk_standard_variable(name='pclake_totN'),self%id_sNH4W)
    call self%add_to_aggregate_variable(type_bulk_standard_variable(name='pclake_totN'),self%id_sNO3W)
    call self%add_to_aggregate_variable(type_bulk_standard_variable(name='pclake_totP'),self%id_sPO4W)
    call self%add_to_aggregate_variable(type_bulk_standard_variable(name='pclake_totP'),self%id_sPAIMW)
-   call self%add_to_aggregate_variable(type_bulk_standard_variable(name='pclake_totP'),self%id_sPDetW)
-!  add dissolved detritus N and P to PCLake totN and totP
-   call self%add_to_aggregate_variable(type_bulk_standard_variable(name='pclake_totN'),self%id_sNDisDetW)
-   call self%add_to_aggregate_variable(type_bulk_standard_variable(name='pclake_totP'),self%id_sPDisDetW)
+   call self%add_to_aggregate_variable(type_bulk_standard_variable(name='pclake_totP'),self%id_sPPOMW)
+!  add dissolved organic N and P to PCLake totN and totP
+   call self%add_to_aggregate_variable(type_bulk_standard_variable(name='pclake_totN'),self%id_sNDOMW)
+   call self%add_to_aggregate_variable(type_bulk_standard_variable(name='pclake_totP'),self%id_sPDOMW)
 
 !  register environmental dependencies
    call self%register_dependency(self%id_uTm,   standard_variables%temperature)
@@ -247,14 +262,15 @@
 !  carriers for local state variables
    real(rk)     :: sNH4W,sNO3W,sPO4W,sPAIMW,sSiO2W,sO2W
 !  Nutrients ratio value
-   real(rk)     :: rPDDetW,rNDDetW
+   real(rk)     :: rPDPOMW,rNDPOMW
+   real(rk)     :: rPDDOMW,rNDDOMW
 !  carriers for environmental dependencies
    real(rk)     :: uTm
 !  local variables for processes
 !  Temperature function variables
    real(rk)     :: uFunTmNitr
 !  O2 functions variables
-   real(rk)     :: aCorO2BOD,aCorO2NitrW,wO2MinDetW,wO2NitrW
+   real(rk)     :: aCorO2BOD,aCorO2NitrW,wO2MinDOMW,wO2NitrW
 !  adsorption function variables
    real(rk)     :: wPSorpIMW,aPEqIMW,aPIsoAdsW,aPAdsMaxW,aKPAdsW
 !  nitrification functions variables
@@ -268,17 +284,17 @@
 !  Variable section for organic matters(Par. and Dis.)
 !-----------------------------------------------------------------------
 !  state variable carriers
-   real(rk)     :: sDDetW,sNDetW,sPDetW,sDIMW,sSiDetW
-   real(rk)     :: sDDisDetW, sNDisDetW,sPDisDetW,sSiDisDetW
+   real(rk)     :: sDPOMW,sNPOMW,sPPOMW,sDIMW,sSiPOMW
+   real(rk)     :: sDDOMW, sNDOMW,sPDOMW,sSiDOMW
  !  minerilization step 1, from partical to dissolved
-   real(rk)     :: kNMinDetW_1,kPMinDetW_1,kSiMinDetW_1,uFunTmMinW_1
-   real(rk)     :: wDMinDetW_1,wNMinDetW_1,wPMinDetW_1,wSiMinDetW_1
-   real(rk)     :: wDAbioDetW_1,wNAbioDetW_1,wPAbioDetW_1,wSiAbioDetW_1
+   real(rk)     :: kNMinPOMW,kPMinPOMW,kSiMinPOMW,uFunTmMinPOMW
+   real(rk)     :: wDMinPOMW,wNMinPOMW,wPMinPOMW,wSiMinPOMW
+   real(rk)     :: wDAbioPOMW,wNAbioPOMW,wPAbioPOMW,wSiAbioPOMW
 !  O2 comsuption during first step
-   real(rk)     :: wO2MinDetW_1
+   real(rk)     :: wO2MinPOMW
 !  mineralisation function variables
-   real(rk)     :: wDMinDetW,wNMinDetW,wPMinDetW,wSiMinDetW,uFunTmMinW  
-   real(rk)     :: wDAbioDetW,wNAbioDetW,wPAbioDetW,wSiAbioDetW
+   real(rk)     :: wDMinDOMW,wNMinDOMW,wPMinDOMW,wSiMinDOMW,uFunTmMinDOMW  
+   real(rk)     :: wDAbioDOMW,wNAbioDOMW,wPAbioDOMW,wSiAbioDOMW
 !
 !EOP
 !-----------------------------------------------------------------------
@@ -287,66 +303,69 @@
    _LOOP_BEGIN_
 !  Retrieve current (local) state variable values.
    _GET_(self%id_sDIMW,sDIMW)
-   _GET_(self%id_sDDetW,sDDetW)
-   _GET_(self%id_sPDetW,sPDetW)
-   _GET_(self%id_sNDetW,sNDetW)
-   _GET_(self%id_sSiDetW,sSiDetW)
+   _GET_(self%id_sDPOMW,sDPOMW)
+   _GET_(self%id_sPPOMW,sPPOMW)
+   _GET_(self%id_sNPOMW,sNPOMW)
+   _GET_(self%id_sSiPOMW,sSiPOMW)
    _GET_(self%id_sPO4W,sPO4W)
    _GET_(self%id_sPAIMW,sPAIMW)
    _GET_(self%id_sNH4W,sNH4W)
    _GET_(self%id_sNO3W,sNO3W)
    _GET_(self%id_sO2W,sO2W)
    _GET_(self%id_sSiO2W,sSiO2W)
-   _GET_(self%id_sDDisDetW,sDDisDetW)
-   _GET_(self%id_sNDisDetW,sNDisDetW)
-   _GET_(self%id_sPDisDetW,sPDisDetW)
-   _GET_(self%id_sSiDisDetW,sSiDisDetW)
+   _GET_(self%id_sDDOMW,sDDOMW)
+   _GET_(self%id_sNDOMW,sNDOMW)
+   _GET_(self%id_sPDOMW,sPDOMW)
+   _GET_(self%id_sSiDOMW,sSiDOMW)
 
 !  retrieve current environmental dependencies
    _GET_(self%id_uTm,uTm)
 
-!  Nutrients ratio of detritus
-   rPDDetW=sPDetW/(sDDetW+NearZero)
-   rNDDetW= sNDetW/(sDDetW+NearZero)
+!  Nutrients ratio of partical organic matter
+   rPDPOMW=sPPOMW/(sDPOMW+NearZero)
+   rNDPOMW= sNPOMW/(sDPOMW+NearZero)
+!  Nutrients ratio of dissolved organic matter
+   rPDDOMW=sPDOMW/(sDDOMW+NearZero)
+   rNDDOMW= sNDOMW/(sDDOMW+NearZero)
 !-----------------------------------------------------------------------
 !  Temperature functions
 !-----------------------------------------------------------------------
-!  temp._function_of_mineralisation_in_water
-   uFunTmMinW = uFunTmAbio(uTm,self%cThetaMinW)
 !  Temperature_dependence_for_nitrification
    uFunTmNitr = uFunTmAbio(uTm,self%cThetaNitr)
 !-----------------------------------------------------------------------
-!  mineralisation step on, from Par. to Dis.
+!  mineralisation step on, from POM to DOM
 !-----------------------------------------------------------------------
 !  temp._function_of_mineralisation_in_water for first step min.
-   uFunTmMinW_1 = uFunTmAbio(uTm,self%cThetaMinW_1)
+   uFunTmMinPOMW = uFunTmAbio(uTm,self%cThetaMinPOMW)
 !  P_mineralisation_constant_in_water
-   kPMinDetW_1 = self%kDMinDetW_1
+   kPMinPOMW = self%kDMinPOMW
 !  N_mineralisation_constant_in_water
-   kNMinDetW_1 = self%kDMinDetW_1
+   kNMinPOMW = self%kDMinPOMW
 !  Si_mineralisation_constant_in_water
-   kSiMinDetW_1 = self%kDMinDetW_1
+   kSiMinPOMW = self%kDMinPOMW
 !  decomposition
-   wDMinDetW_1 = self%kDMinDetW_1 * uFunTmMinW_1 * sDDetW
-!  detrital_P mineralisation
-   wPMinDetW_1 = kPMinDetW_1 * uFunTmMinW_1 * sPDetW
-!  detrital_N mineralisation
-   wNMinDetW_1 = kNMinDetW_1 * uFunTmMinW_1 * sNDetW
-!  detrital_Si mineralisation
-   wSiMinDetW_1 = kSiMinDetW_1 * uFunTmMinW_1 * sSiDetW
+   wDMinPOMW = self%kDMinPOMW * uFunTmMinPOMW * sDPOMW
+!  partical_OM_P mineralisation
+   wPMinPOMW = kPMinPOMW * uFunTmMinPOMW * sPPOMW
+!  artical_OM_N mineralisation
+   wNMinPOMW = kNMinPOMW * uFunTmMinPOMW * sNPOMW
+!  partical_OM_Si mineralisation
+   wSiMinPOMW = kSiMinPOMW * uFunTmMinPOMW * sSiPOMW
 !  O2 comsuption for step 1
-   wO2MinDetW_1 = molO2molC * self%cCPerDW * aCorO2BOD * wDMinDetW_1
+   wO2MinPOMW = molO2molC * self%cCPerDW * aCorO2BOD * wDMinPOMW
 !-----------------------------------------------------------------------
-!  mineralisation step 2, from Dis. to nutrients
+!  mineralisation step 2, from DOM to nutrients
 !-----------------------------------------------------------------------
+!  temperature_function_of_mineralisation_in_water
+   uFunTmMinDOMW = uFunTmAbio(uTm,self%cThetaMinDOMW)
 !  decomposition
-   wDMinDetW = self%kDMinDetW * uFunTmMinW * sDDisDetW
-!  detrital_P mineralisation
-   wPMinDetW = self%kPMinDetW * uFunTmMinW * sPDisDetW
-!  detrital_N mineralisation
-   wNMinDetW = self%kNMinDetW * uFunTmMinW * sNDisDetW
-!  detrital_Si mineralisation
-   wSiMinDetW = self%kSiMinDetW * uFunTmMinW * sSiDisDetW
+   wDMinDOMW = self%kDMinDOMW * uFunTmMinDOMW * sDDOMW
+!  dissolved_OM_P mineralisation
+   wPMinDOMW = self%kPMinDOMW * uFunTmMinDOMW * sPDOMW
+!  dissolved_OM mineralisation
+   wNMinDOMW = self%kNMinDOMW * uFunTmMinDOMW * sNDOMW
+!  dissolved_OM_Si mineralisation
+   wSiMinDOMW = self%kSiMinDOMW * uFunTmMinDOMW * sSiDOMW
 !-----------------------------------------------------------------------
 !  phosphorus adsorption
 !-----------------------------------------------------------------------
@@ -374,14 +393,14 @@
 !-----------------------------------------------------------------------
 !  mineralisation_flux_by_denitrification
    wDDenitW = sNO3W*sNO3W/(self%hNO3Denit*self%hNO3Denit+sNO3W*sNO3W)* &
-   & (1.0_rk-aCorO2BOD)*wDMinDetW
+   & (1.0_rk-aCorO2BOD)*wDMinDOMW
 !  Denitrification_flux
    wNDenitW=self%NO3PerC*molNmolC*self%cCPerDW*wDDenitW
 !-----------------------------------------------------------------------
 !  O2 dynamics
 !-----------------------------------------------------------------------
-!  O2_flux_due_to_mineralisation_of_detritus
-   wO2MinDetW = molO2molC * self%cCPerDW * aCorO2BOD * wDMinDetW
+!  O2_flux_due_to_mineralisation_of_organics
+   wO2MinDOMW = molO2molC * self%cCPerDW * aCorO2BOD * wDMinDOMW
 !  O2_flux_due_to_nitrification
    wO2NitrW = self%O2PerNH4 * molO2molN * wNNitrW
 !-----------------------------------------------------------------------
@@ -390,36 +409,36 @@
 !-----------------------------------------------------------------------
 !  total_abiotic/microbial_DW_inorganic_matter_flux_in_water
    wDAbioIMW=0.0_rk
-!  change of partical detritus
-!  total_abiotic/microbial_DW_detritus_flux_in_water
-   wDAbioDetW_1=-wDMinDetW_1
-!  total_abiotic/microbial_N_detritus_flux_in_water
-   wNAbioDetW_1 =-wNMinDetW_1
-!  total_abiotic/microbial_P_detritus_flux_in_water
-   wPAbioDetW_1=-wPMinDetW_1
-!  total_abiotic/microbial_Si_detritus_flux_in_water
-   wSiAbioDetW_1=-wSiMinDetW_1
+!  change of partical orgainics
+!  total_abiotic/microbial_DW partical OM flux in water
+   wDAbioPOMW=-wDMinPOMW
+!  total_abiotic/microbial_N partical OM flux in water
+   wNAbioPOMW =-wNMinPOMW
+!  total_abiotic/microbial_P partical OM flux in water
+   wPAbioPOMW=-wPMinPOMW
+!  total_abiotic/microbial_Si partical OM flux in water
+   wSiAbioPOMW=-wSiMinPOMW
 !  change of dissolved ditritus
-!  total_abiotic/microbial_dissoved orignic flux in water
-   wDAbioDetW=wDMinDetW_1 - wDMinDetW
-!  total_abiotic/microbial_dissolved organic N flux in water
-   wNAbioDetW = wNMinDetW_1 - wNMinDetW
-!  total_abiotic/microbial_dissolved organic P flux in water
-   wPAbioDetW= wPMinDetW_1 - wPMinDetW
-!  total_abiotic/microbial_dissolved organic Si flux in water
-   wSiAbioDetW= wSiMinDetW_1 - wSiMinDetW
-!  total_abiotic/microbial_dissolved_P_flux_in_water
-   wPAbioPO4W=wPMinDetW-wPSorpIMW
-!  total_abiotic/microbial_P_absorbed_onto_inorganic_matter_flux_in_water
+!  total_abiotic/microbial_DW dissoved orignic flux in water
+   wDAbioDOMW=wDMinPOMW - wDMinDOMW
+!  total_abiotic/microbial_N dissolved organic flux in water
+   wNAbioDOMW = wNMinPOMW - wNMinDOMW
+!  total_abiotic/microbial_P dissolved organic flux in water
+   wPAbioDOMW= wPMinPOMW - wPMinDOMW
+!  total_abiotic/microbial_Si dissolved organic flux in water
+   wSiAbioDOMW= wSiMinPOMW - wSiMinDOMW
+!  total_abiotic/microbial_PO4 flux in water
+   wPAbioPO4W=wPMinDOMW-wPSorpIMW
+!  total_abiotic/microbial_P absorbed on inorganic matter flux in water
    wPAbioAIMW=wPSorpIMW
-!  total_abiotic/microbial_N_NH4_flux_in_water
-   wNAbioNH4W = wNMinDetW-wNNitrW
-!  total_abiotic/microbial_N_NO3_flux_in_water
+!  total_abiotic/microbial_NH4 flux in water
+   wNAbioNH4W = wNMinDOMW-wNNitrW
+!  total_abiotic/microbial_NO3 flux in water
    wNAbioNO3W = wNNitrW - wNDenitW
-!  total_abiotic/microbial_Si_SiO2_flux_in_water
-   wSiAbioSiO2W=wSiMinDetW
-!  total_abiotic/microbial_O2_flux_in_water
-   wO2AbioW = - wO2MinDetW_1 - wO2MinDetW - wO2NitrW
+!  total_abiotic/microbial_SiO2 flux in water
+   wSiAbioSiO2W=wSiMinDOMW
+!  total_abiotic/microbial_O2 flux in water
+   wO2AbioW = - wO2MinPOMW - wO2MinDOMW - wO2NitrW
 !-----------------------------------------------------------------------
 !  Update local state variables
 !-----------------------------------------------------------------------
@@ -433,25 +452,24 @@
    _SET_ODE_(self%id_sO2W,wO2AbioW)
 !  update orgainc variables
 !  partical organics
-   _SET_ODE_(self%id_sDDetW,wDAbioDetW_1)
-   _SET_ODE_(self%id_sPDetW,wPAbioDetW_1)
-   _SET_ODE_(self%id_sNDetW,wNAbioDetW_1)
-   _SET_ODE_(self%id_sSiDetW,wSiAbioDetW_1)
+   _SET_ODE_(self%id_sDPOMW,wDAbioPOMW)
+   _SET_ODE_(self%id_sPPOMW,wPAbioPOMW)
+   _SET_ODE_(self%id_sNPOMW,wNAbioPOMW)
+   _SET_ODE_(self%id_sSiPOMW,wSiAbioPOMW)
 !! Dissolved organics
-   _SET_ODE_(self%id_sDDisDetW,wDAbioDetW)
-   _SET_ODE_(self%id_sPDisDetW,wPAbioDetW)
-   _SET_ODE_(self%id_sNDisDetW,wNAbioDetW)
-   _SET_ODE_(self%id_sSiDisDetW,wSiAbioDetW)
+   _SET_ODE_(self%id_sDDOMW,wDAbioDOMW)
+   _SET_ODE_(self%id_sPDOMW,wPAbioDOMW)
+   _SET_ODE_(self%id_sNDOMW,wNAbioDOMW)
+   _SET_ODE_(self%id_sSiDOMW,wSiAbioDOMW)
 !-----------------------------------------------------------------------
 !  Output local diagnostic variables
 !-----------------------------------------------------------------------
-   _SET_DIAGNOSTIC_(self%id_rPDDetW,rPDDetW)
-   _SET_DIAGNOSTIC_(self%id_rNDDetW,rNDDetW)
-   _SET_DIAGNOSTIC_(self%id_wDAbioDetW,   wDAbioDetW*secs_pr_day)
-   _SET_DIAGNOSTIC_(self%id_wPAbioDetW,   wPAbioDetW*secs_pr_day)
-   _SET_DIAGNOSTIC_(self%id_wNAbioDetW,   wNAbioDetW*secs_pr_day)
-   _SET_DIAGNOSTIC_(self%id_wSiAbioDetW,  wSiAbioDetW*secs_pr_day)
-
+   _SET_DIAGNOSTIC_(self%id_rPDPOMW,rPDPOMW)
+   _SET_DIAGNOSTIC_(self%id_rNDPOMW,rNDPOMW)
+   _SET_DIAGNOSTIC_(self%id_wDAbioDOMW,   wDAbioDOMW*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_wPAbioDOMW,   wPAbioDOMW*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_wNAbioDOMW,   wNAbioDOMW*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_wSiAbioDOMW,  wSiAbioDOMW*secs_pr_day)
 #ifdef _DEVELOPMENT_
 !  output diagnostic variable for modular fluexes
    _SET_DIAGNOSTIC_(self%id_wDAbioIMW,    wDAbioIMW*secs_pr_day)
@@ -485,8 +503,8 @@
 ! !REVISION HISTORY:
 !  Original author(s):Fenjuan Hu
 ! !LOCAL VARIABLES:
-   real(rk) :: sDIMW,sDDetW
-   real(rk) :: extIM,extDet
+   real(rk) :: sDIMW,sDPOMW
+   real(rk) :: extIM,extPOM
 !
 !EOP
 !-----------------------------------------------------------------------
@@ -496,16 +514,16 @@
 
    ! Retrieve current (local) state variable values.
    _GET_(self%id_sDIMW,sDIMW)
-   _GET_(self%id_sDDetW,sDDetW)
+   _GET_(self%id_sDPOMW,sDPOMW)
 
    extIM=self%cExtSpIM*sDIMW
-   extDet=self%cExtSpDet*sDDetW
+   extPOM=self%cExtSpPOM*sDPOMW
 
    ! Self-shading with explicit contribution from background phytoplankton concentration.
-   _SET_EXTINCTION_(extIM+extDet)
+   _SET_EXTINCTION_(extIM+extPOM)
 
    _SET_DIAGNOSTIC_(self%id_extIM,extIM)
-   _SET_DIAGNOSTIC_(self%id_extDet,extDet)
+   _SET_DIAGNOSTIC_(self%id_extPOM,extPOM)
 
    ! Leave spatial loops (if any)
    _LOOP_END_
