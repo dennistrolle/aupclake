@@ -337,21 +337,15 @@
 !-----------------------------------------------------------------------
 !  temp._function_of_mineralisation_in_water for first step min.
    uFunTmMinPOMW = uFunTmAbio(uTm,self%cThetaMinPOMW)
-!  P_mineralisation_constant_in_water
-   kPMinPOMW = self%kDMinPOMW
-!  N_mineralisation_constant_in_water
-   kNMinPOMW = self%kDMinPOMW
-!  Si_mineralisation_constant_in_water
-   kSiMinPOMW = self%kDMinPOMW
 !  decomposition
    wDMinPOMW = self%kDMinPOMW * uFunTmMinPOMW * sDPOMW
 !  partical_OM_P mineralisation
-   wPMinPOMW = kPMinPOMW * uFunTmMinPOMW * sPPOMW
-!  artical_OM_N mineralisation
-   wNMinPOMW = kNMinPOMW * uFunTmMinPOMW * sNPOMW
+   wPMinPOMW = self%kPMinPOMW * uFunTmMinPOMW * sPPOMW
+!  partical_OM_N mineralisation
+   wNMinPOMW = self%kNMinPOMW * uFunTmMinPOMW * sNPOMW
 !  partical_OM_Si mineralisation
-   wSiMinPOMW = kSiMinPOMW * uFunTmMinPOMW * sSiPOMW
-!  O2 comsuption for step 1
+   wSiMinPOMW = self%kSiMinPOMW * uFunTmMinPOMW * sSiPOMW
+!  O2 comsuption for step POM to DOM
    wO2MinPOMW = molO2molC * self%cCPerDW * aCorO2BOD * wDMinPOMW
 !-----------------------------------------------------------------------
 !  mineralisation step 2, from DOM to nutrients
