@@ -24,7 +24,7 @@
    type (type_bottom_state_variable_id)            :: id_sDVeg,id_sNVeg,id_sPVeg
 !  diagnostic variables for dependencies(without output)
    type (type_horizontal_diagnostic_variable_id)       :: id_aDSubVeg,id_aCovVeg
-   type (type_horizontal_diagnostic_variable_id)       :: id_tDBedDetS,id_afCovSurfVeg
+   type (type_horizontal_diagnostic_variable_id)       :: id_tDBedPOMS,id_afCovSurfVeg
 !  diagonostic variables for light attenuation coefficient for plant.
    type (type_horizontal_diagnostic_variable_id)       :: id_aDayInitVeg
    type (type_horizontal_diagnostic_variable_id)       :: id_tO2BedW,id_tDBedVeg
@@ -32,18 +32,18 @@
 !  diagnostic variables for modular fluxes
    type (type_horizontal_diagnostic_variable_id)       :: id_tNBedVeg,id_tPBedVeg
    type (type_horizontal_diagnostic_variable_id)       :: id_wNBedNH4W,id_wNBedNO3W,id_wPBedPO4W
-   type (type_horizontal_diagnostic_variable_id)       :: id_wDBedDetW,id_wNBedDetW
-   type (type_horizontal_diagnostic_variable_id)       :: id_wPBedDetW,id_tNBedNH4S,id_tNBedNO3S
-   type (type_horizontal_diagnostic_variable_id)       :: id_tPBedPO4S,id_tPBedDetS,id_tNBedDetS
-   type (type_horizontal_diagnostic_variable_id)       :: id_tDBedDetSflux
+   type (type_horizontal_diagnostic_variable_id)       :: id_wDBedPOMW,id_wNBedPOMW
+   type (type_horizontal_diagnostic_variable_id)       :: id_wPBedPOMW,id_tNBedNH4S,id_tNBedNO3S
+   type (type_horizontal_diagnostic_variable_id)       :: id_tPBedPO4S,id_tPBedPOMS,id_tNBedPOMS
+   type (type_horizontal_diagnostic_variable_id)       :: id_tDBedPOMSflux
 #endif
 !  state dependencies identifiers
    type (type_state_variable_id)                :: id_NH4poolW,id_NO3poolW,id_PO4poolW,id_O2poolW
-   type (type_state_variable_id)                :: id_DDetpoolW,id_NDetpoolW,id_PDetpoolW
+   type (type_state_variable_id)                :: id_DPOMpoolW,id_NPOMpoolW,id_PPOMpoolW
    type (type_bottom_state_variable_id)         :: id_NH4poolS,id_NO3poolS,id_PO4poolS
-   type (type_bottom_state_variable_id)         :: id_DDetpoolS,id_NDetpoolS,id_PDetpoolS
-   type (type_state_variable_id)                :: id_DDisDetpoolW,id_NDisDetpoolW,id_PDisDetpoolW
-   type (type_bottom_state_variable_id)         :: id_DDisDetpoolS,id_NDisDetpoolS,id_PDisDetpoolS
+   type (type_bottom_state_variable_id)         :: id_DPOMpoolS,id_NPOMpoolS,id_PPOMpoolS
+   type (type_state_variable_id)                :: id_DDOMpoolW,id_NDOMpoolW,id_PDOMpoolW
+   type (type_bottom_state_variable_id)         :: id_DDOMpoolS,id_NDOMpoolS,id_PDOMpoolS
 !  environmental dependencies
    type (type_global_dependency_id)         :: id_Day
    type (type_dependency_id)                :: id_uTm,id_extc,id_dz
@@ -75,13 +75,13 @@
    real(rk)    :: cVPUptMaxVeg,cAffPUptVeg,fDissMortVeg,fDetWMortVeg
 !  paremters for sediment properties(pore water concentration)
    real(rk)   :: cDepthS,bPorS,cCPerDW,hO2BOD
-   real(rk)   :: cExtSpVeg  !,host
+   real(rk)   :: cExtSpVeg
 !  plant height
    real(rk)   :: cHeightVeg
 !  minimun state variable vaules
    real(rk)   :: cDVegMin, cNVegMin,cPVegMin
 !  fraction of dissolved organics from macrophytes
-   real(rk)   :: fDisVegDetW,fDisVegDetS
+   real(rk)   :: fVegDOMW,fVegDOMS
 !  special local parameter aDSubVeg, borrowed from do_bottom
 !  subroutine to get_light_extinction subroutine
    real(rk)   :: aDSubVeg
@@ -173,8 +173,8 @@
    call self%get_parameter(self%cExtSpVeg,     'cExtSpVeg',      'm2/gDW',              'specific extinction',                                                                                     default=0.01_rk)
 !  the user defined minumun value for state variables
    call self%get_parameter(self%cDVegMin,      'cDVegMin',        'gDW/m2',             'minimun dry weight macrophytes in system',                                                                default=0.00001_rk)
-   call self%get_parameter(self%fDisVegDetS,  'fDisVegDetS',      '[-]',                'dissolved organic fraction from benthic macrophytes',                                                     default=0.5_rk)
-   call self%get_parameter(self%fDisVegDetW,  'fDisVegDetW',      '[-]',                'dissolved organic fraction from pelagic macrophytes',                                                     default=0.5_rk)
+   call self%get_parameter(self%fVegDOMS,  'fVegDOMS',      '[-]',                'dissolved organic fraction from benthic macrophytes',                                                     default=0.5_rk)
+   call self%get_parameter(self%fVegDOMW,  'fVegDOMW',      '[-]',                'dissolved organic fraction from pelagic macrophytes',                                                     default=0.5_rk)
 !  Register local state variable
    call self%register_state_variable(self%id_sDVeg,'sDVeg','g m-2','vegetation dry weight',    &
                                     initial_value=1.0_rk,minimum=self%cDVegMin)
@@ -192,7 +192,7 @@
    call self%register_diagnostic_variable(self%id_allimveg,       'allimveg',       '[-]',        'light limitation faction',         output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_aLPAR1Veg,      'aLPAR1Veg',      'W m-2',      'light at top of the vegetation',   output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_aLPAR2Veg,      'aLPAR2Veg',      'W m-2',      'light at bottom of the vegetation',output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_tDBedDetS,      'tDBedDetS',      'g m-2 s-1',  'tDBedDetS',                        output=output_none)
+   call self%register_diagnostic_variable(self%id_tDBedPOMS,      'tDBedPOMS',      'g m-2 s-1',  'tDBedPOMS',                        output=output_none)
 #ifdef _DEVELOPMENT_
 !  register diagnostic variables for modular fluxes
    call self%register_diagnostic_variable(self%id_tDBedVeg,       'tDBedVeg',      'g m-2 s-1',  'macrophytes_DVeg_exchange',    output=output_instantaneous)
@@ -202,15 +202,15 @@
    call self%register_diagnostic_variable(self%id_wNBedNO3W,      'wNBedNO3W',     'g m-2 s-1',  'macrophytes_NO3W_exchange',    output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_wPBedPO4W,      'wPBedPO4W',     'g m-2 s-1',  'macrophytes_PO4W_exchange',    output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_tO2BedW,        'tO2BedW',       'g m-2 s-1',  'macrophytes_tO2BedW_exchange', output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wDBedDetW,      'wDBedDetW',     'g m-2 s-1',  'macrophytes_wDdetW_exchange',  output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wNBedDetW,      'wNBedDetW',     'g m-2 s-1',  'macrophytes_NDetW_exchange',   output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wPBedDetW,      'wPBedDetW',     'g m-2 s-1',  'macrophytes_PDetW_exchange',   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wDBedPOMW,      'wDBedPOMW',     'g m-2 s-1',  'macrophytes_DPOMW_exchange',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wNBedPOMW,      'wNBedPOMW',     'g m-2 s-1',  'macrophytes_NPOMW_exchange',   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wPBedPOMW,      'wPBedPOMW',     'g m-2 s-1',  'macrophytes_PPOMW_exchange',   output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_tNBedNH4S,      'tNBedNH4S',     'g m-2 s-1',  'macrophytes_NH4S_exchange',    output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_tNBedNO3S,      'tNBedNO3S',     'g m-2 s-1',  'macrophytes_NO3S_exchange',    output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_tPBedPO4S,      'tPBedPO4S',     'g m-2 s-1',  'macrophytes_PO4S_exchange',    output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_tDBedDetSflux,  'tDBedDetSflux', 'g m-2 s-1',  'macrophytes_DDetS_exchange',   output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_tNBedDetS,      'tNBedDetS',     'g m-2 s-1',  'macrophytes_NDetS_exchange',   output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_tPBedDetS,      'tPBedDetS',     'g m-2 s-1',  'macrophytes_PDetS_exchange',   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_tDBedPOMSflux,  'tDBedPOMSflux', 'g m-2 s-1',  'macrophytes_DPOMS_exchange',   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_tNBedPOMS,      'tNBedPOMS',     'g m-2 s-1',  'macrophytes_NPOMS_exchange',   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_tPBedPOMS,      'tPBedPOMS',     'g m-2 s-1',  'macrophytes_PPOMS_exchange',   output=output_instantaneous)
 #endif
 
 !  Register contribution of state to global aggregate variables
@@ -221,21 +221,21 @@
    call self%register_state_dependency(self%id_NO3poolW,     'nitrate_pool_water',               'g m-3', 'nitrate pool for nutrient uptake')
    call self%register_state_dependency(self%id_PO4poolW,     'phosphate_pool_water',             'g m-3', 'phosphate pool for nutrient uptake')
    call self%register_state_dependency(self%id_O2poolW,      'oxygen_pool_water',                'g m-3', 'oxygen pool in water')
-   call self%register_state_dependency(self%id_DDetpoolW,    'detritus_DW_pool_water',           'g m-3', 'detritus DW pool in water')
-   call self%register_state_dependency(self%id_NDetpoolW,    'detritus_N_pool_water',            'g m-3', 'detritus N pool in water')
-   call self%register_state_dependency(self%id_PDetpoolW,    'detritus_P_pool_water',            'g m-3', 'detritus P pool in water')
+   call self%register_state_dependency(self%id_DPOMpoolW,    'POM_DW_pool_water',                'g m-3', 'POM DW pool in water')
+   call self%register_state_dependency(self%id_NPOMpoolW,    'POM_N_pool_water',                 'g m-3', 'POM N pool in water')
+   call self%register_state_dependency(self%id_PPOMpoolW,    'POM_P_pool_water',                 'g m-3', 'POM P pool in water')
    call self%register_state_dependency(self%id_NH4poolS,     'ammonium_pool_sediment',           'g m-2', 'ammonium pool for nutrient uptake')
    call self%register_state_dependency(self%id_NO3poolS,     'nitrate_pool_sediment',            'g m-2', 'nitrate pool for nutrient uptake')
    call self%register_state_dependency(self%id_PO4poolS,     'phosphate_pool_sediment',          'g m-2', 'phosphate pool for nutrient uptake')
-   call self%register_state_dependency(self%id_DDetpoolS,    'detritus_DW_pool_sediment',        'g m-2', 'detritus DW pool sediment')
-   call self%register_state_dependency(self%id_NDetpoolS,    'detritus_N_pool_sediment',         'g m-2', 'detritus N pool sediment')
-   call self%register_state_dependency(self%id_PDetpoolS,    'detritus_P_pool_sediment',         'g m-2', 'detritus P pool sediment')
-   call self%register_state_dependency(self%id_DDisDetpoolW, 'dissolved_detritus_DW_water',      'g m-3', 'dissolved detritus DW in water')
-   call self%register_state_dependency(self%id_NDisDetpoolW, 'dissolved_detritus_N_water',       'g m-3', 'dissolved detritus N in water')
-   call self%register_state_dependency(self%id_PDisDetpoolW, 'dissolved_detritus_P_water',       'g m-3', 'dissolved detritus P in water')
-   call self%register_state_dependency(self%id_DDisDetpoolS, 'dissolved_detritus_DW_sediment',   'g m-2', 'dissolved detritus DW in sediment')
-   call self%register_state_dependency(self%id_NDisDetpoolS, 'dissolved_detritus_N_sediment',    'g m-2', 'dissolved detritus N in sediment')
-   call self%register_state_dependency(self%id_PDisDetpoolS, 'dissolved_detritus_P_sediment',    'g m-2', 'dissolved detritus P in sediment')
+   call self%register_state_dependency(self%id_DPOMpoolS,    'POM_DW_pool_sediment',             'g m-2', 'POM DW pool sediment')
+   call self%register_state_dependency(self%id_NPOMpoolS,    'POM_N_pool_sediment',              'g m-2', 'POM N pool sediment')
+   call self%register_state_dependency(self%id_PPOMpoolS,    'POM_P_pool_sediment',              'g m-2', 'POM P pool sediment')
+   call self%register_state_dependency(self%id_DDOMpoolW,    'DOM_DW_pool_water',                'g m-3', 'DOM DW in water')
+   call self%register_state_dependency(self%id_NDOMpoolW,    'DOM_N_pool_water',                 'g m-3', 'DOM N in water')
+   call self%register_state_dependency(self%id_PDOMpoolW,    'DOM_P_pool_water',                 'g m-3', 'DOM P in water')
+   call self%register_state_dependency(self%id_DDOMpoolS,    'DOM_DW_pool_sediment',             'g m-2', 'DOM DW in sediment')
+   call self%register_state_dependency(self%id_NDOMpoolS,    'DOM_N_pool_sediment',              'g m-2', 'DOM N in sediment')
+   call self%register_state_dependency(self%id_PDOMpoolS,    'DOM_P_pool_sediment',              'g m-2', 'DOM P in sediment')
 !------------------------------------------------------------------------------------------------------------
 !  register diagnostic dependencies
 !------------------------------------------------------------------------------------------------------------
@@ -333,13 +333,13 @@
    real(rk)   :: wNBedDetW,tNMortVegDetW,tNMortVegDet
    real(rk)   :: wPBedDetW,tPMortVegDetW,tPMortVegDet
 !  Detritus in sediment,DW,Nitrogen,phosphorus
-   real(rk)   :: tDBedDetS,tDMortVegS
-   real(rk)   :: tNBedDetS,tNMortVegS,tNMortVegDetS
-   real(rk)   :: tPBedDetS,tPMortVegS,tPMortVegDetS
+   real(rk)   :: tDBedPOMS,tDMortVegS
+   real(rk)   :: tNBedPOMS,tNMortVegS,tNMortVegDetS
+   real(rk)   :: tPBedPOMS,tPMortVegS,tPMortVegDetS
 !  Dissolved detritus in sediment
-   real(rk)   :: tDBedDisDetS,tNBedDisDetS,tPBedDisDetS
-   real(rk)   :: wDBedDisDetW,wNBedDisDetW,wPBedDisDetW
-   real(rk)   :: wDBedDetW_tot,wNBedDetW_tot,wPBedDetW_tot
+   real(rk)   :: tDBedDOMS,tNBedDOMS,tPBedDOMS
+   real(rk)   :: wDBedDOMW,wNBedDOMW,wPBedDOMW
+   real(rk)   :: wDBedPOMW,wNBedPOMW,wPBedPOMW
 !
 !EOP
 !-----------------------------------------------------------------------
@@ -756,43 +756,43 @@
 !  mortality_flux_becoming_water_detritus
    tDMortVegW = self%fDetWMortVeg * (1.0_rk - bfRootVeg) * tDMortVeg
 !  total_DW_flux_from_Vegetation_module_to_water_detritus
-   wDBedDetW_tot = tDMortVegW
-   wDBedDetW = wDBedDetW_tot * (1.0_rk - self%fDisVegDetW)
-   wDBedDisDetW = wDBedDetW_tot * self%fDisVegDetW
+   wDBedPOMW = tDMortVegW
+   wDBedPOMW = wDBedDetW * (1.0_rk - self%fVegDOMW)
+   wDBedDOMW = wDBedDetW * self%fVegDOMW
 !  mortality_flux_of_vegetation_becoming_detritus_N
    tNMortVegDet = tNMortVeg - tNMortVegNH4
 !  mortality_flux_of_vegetation_becoming_detritus_N_in_water
    tNMortVegDetW = self%fDetWMortVeg * (1.0_rk - bfRootVeg) * tNMortVegDet
 !  total_N_flux_from_Vegetation_module_to_water_detritus
-   wNBedDetW_tot = tNMortVegDetW
-   wNBedDetW = wNBedDetW_tot * (1.0_rk - self%fDisVegDetW)
-   wNBedDisDetW = wNBedDetW_tot * self%fDisVegDetW
+   wNBedDetW = tNMortVegDetW
+   wNBedPOMW = wNBedDetW * (1.0_rk - self%fVegDOMW)
+   wNBedDOMW = wNBedDetW * self%fVegDOMW
 !  mortality_flux_of_vegetation_becoming_detritus_P
    tPMortVegDet = tPMortVeg - tPMortVegPO4
 !  mortality_flux_of_vegetation_becoming_detritus_P_in_water
    tPMortVegDetW = self%fDetWMortVeg * (1.0_rk - bfRootVeg) * tPMortVegDet
 !  total_P_flux_from_Vegetation_module_to_water_detritus
-   wPBedDetW_tot = tPMortVegDetW
-   wPBedDetW = wPBedDetW_tot * (1.0_rk - self%fDisVegDetW)
-   wPBedDisDetW = wPBedDetW_tot * self%fDisVegDetW
+   wPBedDetW = tPMortVegDetW
+   wPBedPOMW = wPBedDetW * (1.0_rk - self%fVegDOMW)
+   wPBedDOMW = wPBedDetW * self%fVegDOMW
 !---------------------------------------------------------------------------
 !  Update detritus  in sediment, DW, N and P
 !---------------------------------------------------------------------------
 !  mortality_flux_becoming_sediment_detritus
    tDMortVegS = tDMortVeg - tDMortVegW
 !  total_DW_flux_from_Vegetation_module_to_sediment_detritus
-   tDBedDetS = tDMortVegS * (1.0_rk - self%fDisVegDetS)
-   tDBedDisDetS = tDMortVegS * self%fDisVegDetS
+   tDBedPOMS = tDMortVegS * (1.0_rk - self%fVegDOMS)
+   tDBedDOMS = tDMortVegS * self%fVegDOMS
 !  mortality_flux_of_vegetation_becoming_detritus_N_in_sediment
    tNMortVegDetS = tNMortVegDet - tNMortVegDetW
 !  total_N_flux_from_Vegetation_module_to_sediment_detritus
-   tNBedDetS = tNMortVegDetS* (1.0_rk - self%fDisVegDetS)
-   tNBedDisDetS = tNMortVegDetS * self%fDisVegDetS
+   tNBedPOMS = tNMortVegDetS* (1.0_rk - self%fVegDOMS)
+   tNBedDOMS = tNMortVegDetS * self%fVegDOMS
 !  mortality_flux_of_vegetation_becoming_detritus_P_in_sediment
    tPMortVegDetS = tPMortVegDet - tPMortVegDetW
 !  total_P_flux_from_Vegetation_module_to_sediment_detritus
-   tPBedDetS = tPMortVegDetS * (1.0_rk - self%fDisVegDetS)
-   tPBedDisDetS = tPMortVegDetS * self%fDisVegDetS
+   tPBedPOMS = tPMortVegDetS * (1.0_rk - self%fVegDOMS)
+   tPBedDOMS = tPMortVegDetS * self%fVegDOMS
 !-----------------------------------------------------------------------
 !  Update local state variables
 !-----------------------------------------------------------------------
@@ -810,29 +810,29 @@
    _SET_BOTTOM_EXCHANGE_(self%id_NO3poolW,wNBedNO3W)
    _SET_BOTTOM_EXCHANGE_(self%id_PO4poolW,wPBedPO4W)
    _SET_BOTTOM_EXCHANGE_(self%id_O2poolW,tO2BedW)
-   _SET_BOTTOM_EXCHANGE_(self%id_DDetpoolW,wDBedDetW)
-   _SET_BOTTOM_EXCHANGE_(self%id_NDetpoolW,wNBedDetW)
-   _SET_BOTTOM_EXCHANGE_(self%id_PDetpoolW,wPBedDetW)
-   _SET_BOTTOM_EXCHANGE_(self%id_DDisDetpoolW,wDBedDisDetW)
-   _SET_BOTTOM_EXCHANGE_(self%id_NDisDetpoolW,wNBedDisDetW)
-   _SET_BOTTOM_EXCHANGE_(self%id_PDisDetpoolW,wPBedDisDetW)
+   _SET_BOTTOM_EXCHANGE_(self%id_DPOMpoolW,wDBedPOMW)
+   _SET_BOTTOM_EXCHANGE_(self%id_NPOMpoolW,wNBedPOMW)
+   _SET_BOTTOM_EXCHANGE_(self%id_PPOMpoolW,wPBedPOMW)
+   _SET_BOTTOM_EXCHANGE_(self%id_DDOMpoolW,wDBedDOMW)
+   _SET_BOTTOM_EXCHANGE_(self%id_NDOMpoolW,wNBedDOMW)
+   _SET_BOTTOM_EXCHANGE_(self%id_PDOMpoolW,wPBedDOMW)
 !  in the sediment
    _SET_ODE_BEN_(self%id_NH4poolS,tNBedNH4S)
    _SET_ODE_BEN_(self%id_NO3poolS,tNBedNO3S)
    _SET_ODE_BEN_(self%id_PO4poolS,tPBedPO4S)
-   _SET_ODE_BEN_(self%id_DDetpoolS,tDBedDetS)
-   _SET_ODE_BEN_(self%id_NDetpoolS,tNBedDetS)
-   _SET_ODE_BEN_(self%id_PDetpoolS,tPBedDetS)
-   _SET_ODE_BEN_(self%id_DDisDetpoolS,tDBedDisDetS)
-   _SET_ODE_BEN_(self%id_NDisDetpoolS,tNBedDisDetS)
-   _SET_ODE_BEN_(self%id_PDisDetpoolS,tPBedDisDetS)
+   _SET_ODE_BEN_(self%id_DPOMpoolS,tDBedPOMS)
+   _SET_ODE_BEN_(self%id_NPOMpoolS,tNBedPOMS)
+   _SET_ODE_BEN_(self%id_PPOMpoolS,tPBedPOMS)
+   _SET_ODE_BEN_(self%id_DDOMpoolS,tDBedDOMS)
+   _SET_ODE_BEN_(self%id_NDOMpoolS,tNBedDOMS)
+   _SET_ODE_BEN_(self%id_PDOMpoolS,tPBedDOMS)
 !-----------------------------------------------------------------------
 !  output diagnostic variables for external links
 !-----------------------------------------------------------------------
 !  Export diagnostic variables
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_aDSubVeg,aDSubVeg)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_aCovVeg,aCovVeg)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDBedDetS,tDBedDetS)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDBedPOMS,tDBedPOMS)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_afCovSurfVeg,afCovSurfVeg)
 !  for vegetation light attenutaion output
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_aDayInitVeg,aDayInitVeg)
@@ -852,15 +852,15 @@
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_wNBedNO3W,wNBedNO3W/dz*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_wPBedPO4W,wPBedPO4W/dz*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tO2BedW,tO2BedW/dz*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_wDBedDetW,wDBedDetW/dz*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_wNBedDetW,wNBedDetW/dz*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_wPBedDetW,wPBedDetW/dz*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_wDBedPOMW,wDBedPOMW/dz*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_wNBedPOMW,wNBedPOMW/dz*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_wPBedPOMW,wPBedPOMW/dz*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNBedNH4S,tNBedNH4S*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNBedNO3S,tNBedNO3S*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tPBedPO4S,tPBedPO4S*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDBedDetSflux,tDBedDetS*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNBedDetS,tNBedDetS*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tPBedDetS,tPBedDetS*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDBedPOMSflux,tDBedPOMS*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNBedPOMS,tNBedPOMS*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tPBedPOMS,tPBedPOMS*secs_pr_day)
 #endif
    _FABM_HORIZONTAL_LOOP_END_
 !
