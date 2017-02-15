@@ -30,22 +30,22 @@
    type (type_horizontal_diagnostic_variable_id)       :: id_oSiDiatS
    type (type_horizontal_diagnostic_variable_id)       :: id_rPDPhytS,id_rNDPhytS
 !  diagnostic variables used by external dependencies
-   type (type_horizontal_diagnostic_variable_id)       :: id_tDPrimDetS
+   type (type_horizontal_diagnostic_variable_id)       :: id_tDPrimPOMS
 #ifdef _DEVELOPMENT_
 !  diagnostic variables for modular fluxes
    type (type_horizontal_diagnostic_variable_id)       :: id_tDPrimDiatS,id_tNPrimDiatS,id_tPPrimDiatS
    type (type_horizontal_diagnostic_variable_id)       :: id_tDPrimGrenS,id_tNPrimGrenS,id_tPPrimGrenS
    type (type_horizontal_diagnostic_variable_id)       :: id_tDPrimBlueS,id_tNPrimBlueS,id_tPPrimBlueS
    type (type_horizontal_diagnostic_variable_id)       :: id_tPPrimPO4S,id_tNPrimNO3S,id_tNPrimNH4S
-   type (type_horizontal_diagnostic_variable_id)       :: id_tNPrimDetS,id_tPPrimDetS,id_tSiPrimDetS,id_tSiExcrDiatS
+   type (type_horizontal_diagnostic_variable_id)       :: id_tNPrimPOMS,id_tPPrimPOMS,id_tSiPrimPOMS,id_tSiExcrDiatS
 !  detritus fluxes will be named differently due to they are used by
 !  external dependencies
-   type (type_horizontal_diagnostic_variable_id)       :: id_tDPrimDetSflux
+   type (type_horizontal_diagnostic_variable_id)       :: id_tDPrimPOMSflux
 #endif
 !  state dependencies identifiers
    type (type_bottom_state_variable_id) :: id_PO4poolS,id_NO3poolS,id_NH4poolS
-   type (type_bottom_state_variable_id) :: id_DDetpoolS,id_NDetpoolS,id_PDetpoolS,id_SiDetpoolS
-   type (type_bottom_state_variable_id) :: id_DDisDetpoolS,id_NDisDetpoolS,id_PDisDetpoolS,id_SiDisDetpoolS
+   type (type_bottom_state_variable_id) :: id_DPOMpoolS,id_NPOMpoolS,id_PPOMpoolS,id_SiPOMpoolS
+   type (type_bottom_state_variable_id) :: id_DDOMpoolS,id_NDOMpoolS,id_PDOMpoolS,id_SiDOMpoolS
    type (type_state_variable_id)        :: id_SiO2poolW
 !  environmental dependencies
    type (type_dependency_id)                :: id_uTm,id_dz
@@ -63,7 +63,7 @@
 !  minimum state variable values
    real(rk)   :: cDBlueMinS,cDGrenMinS,cDDiatMinS
 !  fraction of dissolved detritus from phytoplankton
-   real(rk)   :: fDisPrimDetS
+   real(rk)   :: fPrimDOMS
 
 
    contains
@@ -134,7 +134,7 @@
    call self%get_parameter(self%cDBlueMinS,   'cDBlueMinS',   'gDW/m2',   'minimum blue-green algae biomass in system',                default=0.00001_rk)
    call self%get_parameter(self%cDGrenMinS,   'cDGrenMinS',   'gDW/m2',   'minimum green algae biomass in system',                     default=0.00001_rk)
    call self%get_parameter(self%cDDiatMinS,   'cDDiatMinS',   'gDW/m2',   'minimum diatom biomass in system',                          default=0.00001_rk)
-   call self%get_parameter(self%fDisPrimDetS, 'fDisPrimDetS', '[-]',      'fraction of dissolved organics from sediment phytoplankton',default=0.5_rk)
+   call self%get_parameter(self%fPrimDOMS, 'fPrimDOMS', '[-]',      'fraction of dissolved organics from sediment phytoplankton',default=0.5_rk)
 !  Register local state variable
    call self%register_state_variable(self%id_sDDiatS,'sDDiatS','g m-2','diatom dry weight in sediment',     &
                                     initial_value=0.001_rk,minimum= self%cDDiatMinS)
@@ -159,7 +159,7 @@
    call self%register_diagnostic_variable(self%id_rPDPhytS,  'rPDPhytS',  '[-]',      'rPDPhytS',  output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_rNDPhytS,  'rNDPhytS',  '[-]',      'rNDPhytS',  output=output_instantaneous)
 !  register diagnostic variable for external usage
-   call self%register_diagnostic_variable(self%id_tDPrimDetS,'tDPrimDetS','g m-2 s-1', 'detritus change in phytoplankton sediment',  output=output_none)
+   call self%register_diagnostic_variable(self%id_tDPrimPOMS,'tDPrimPOMS','g m-2 s-1', 'detritus change in phytoplankton sediment',  output=output_none)
 #ifdef _DEVELOPMENT_
 !  register diagnostic variables for modular fluxes
 !  fluxes for local state variables
@@ -176,10 +176,10 @@
    call self%register_diagnostic_variable(self%id_tPPrimPO4S,     'tPPrimPO4S',     'g m-2 s-1', 'phytoplankton_sediment_PO4S_change',   output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_tNPrimNO3S,     'tNPrimNO3S',     'g m-2 s-1', 'phytoplankton_sediment_NO3S_change',   output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_tNPrimNH4S,     'tNPrimNH4S',     'g m-2 s-1', 'phytoplankton_sediment_NH4S_change',   output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_tDPrimDetSflux, 'tDPrimDetSflux', 'g m-2 s-1', 'phytoplankton_sediment_DDetS_change',  output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_tNPrimDetS,     'tNPrimDetS',     'g m-2 s-1', 'phytoplankton_sediment_NDetS_change',  output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_tPPrimDetS,     'tPPrimDetS',     'g m-2 s-1', 'phytoplankton_sediment_PDetS_change',  output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_tSiPrimDetS,    'tSiPrimDetS',    'g m-2 s-1', 'phytoplankton_sediment_SiDetS_change', output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_tDPrimPOMSflux, 'tDPrimPOMSflux', 'g m-2 s-1', 'phytoplankton_sediment_DPOMS_change',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_tNPrimPOMS,     'tNPrimPOMS',     'g m-2 s-1', 'phytoplankton_sediment_NPOMS_change',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_tPPrimPOMS,     'tPPrimPOMS',     'g m-2 s-1', 'phytoplankton_sediment_PPOMS_change',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_tSiPrimPOMS,    'tSiPrimPOMS',    'g m-2 s-1', 'phytoplankton_sediment_SiPOMS_change', output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_tSiExcrDiatS,   'tSiExcrDiatS',   'g m-2 s-1', 'phytoplankton_sediment_SiO2_change',   output=output_instantaneous)
 #endif
 !  Register contribution of state to global aggregate variables
@@ -194,15 +194,15 @@
    call self%register_state_dependency(self%id_PO4poolS,     'PO4_pool_sediment',                'g m-2', 'PO4 pool in sediment')
    call self%register_state_dependency(self%id_NO3poolS,     'NO3_pool_sediment',                'g m-2', 'NO3 pool in sediment')
    call self%register_state_dependency(self%id_NH4poolS,     'NH4_pool_sediment',                'g m-2', 'NH4 pool in sediment')
-   call self%register_state_dependency(self%id_DDetpoolS,    'detritus_DW_pool_sediment',        'g m-2', 'detritus DW pool in sediment')
-   call self%register_state_dependency(self%id_NDetpoolS,    'detritus_N_pool_sediment',         'g m-2', 'detritus N pool in sediment')
-   call self%register_state_dependency(self%id_PDetpoolS,    'detritus_P_pool_sediment',         'g m-2', 'detritus P pool in sediment')
-   call self%register_state_dependency(self%id_SiDetpoolS,   'detritus_Si_pool_sediment',        'g m-2', 'detritus Si pool in sediment')
+   call self%register_state_dependency(self%id_DPOMpoolS,    'POM_DW_pool_sediment',        'g m-2', 'POM DW pool in sediment')
+   call self%register_state_dependency(self%id_NPOMpoolS,    'POM_N_pool_sediment',         'g m-2', 'POM N pool in sediment')
+   call self%register_state_dependency(self%id_PPOMpoolS,    'POM_P_pool_sediment',         'g m-2', 'POM P pool in sediment')
+   call self%register_state_dependency(self%id_SiPOMpoolS,   'POM_Si_pool_sediment',        'g m-2', 'POM Si pool in sediment')
    call self%register_state_dependency(self%id_SiO2poolW,    'SiO2_pool_water',                  'g m-3', 'SiO2 pool in water')
-   call self%register_state_dependency(self%id_DDisDetpoolS, 'dissolved_detritus_DW_sediment',   'g m-2', 'dissolved detritus DW in sediment')
-   call self%register_state_dependency(self%id_NDisDetpoolS, 'dissolved_detritus_N_sediment',    'g m-2', 'dissolved detritus N in sediment')
-   call self%register_state_dependency(self%id_PDisDetpoolS, 'dissolved_detritus_P_sediment',    'g m-2', 'dissolved detritus P in sediment')
-   call self%register_state_dependency(self%id_SiDisDetpoolS,'dissolved_detritus_Si_sediment',   'g m-2', 'dissolved detritus Si in sediment')
+   call self%register_state_dependency(self%id_DDOMpoolS, 'DOM_DW_pool_sediment',   'g m-2', 'DOM DW in sediment')
+   call self%register_state_dependency(self%id_NDOMpoolS, 'DOM_N_pool_sediment',    'g m-2', 'DOM N in sediment')
+   call self%register_state_dependency(self%id_PDOMpoolS, 'DOM_P_pool_sediment',    'g m-2', 'DOM P in sediment')
+   call self%register_state_dependency(self%id_SiDOMpoolS,'DOM_Si_pool_sediment',   'g m-2', 'DOM Si in sediment')
 !  register environmental dependencies
    call self%register_dependency(self%id_uTm,standard_variables%temperature)
    call self%register_dependency(self%id_dz,standard_variables%cell_thickness)
@@ -232,7 +232,7 @@
    real(rk)                   :: uTm,dz
 !  external links value carrier
    real(rk)                  :: sPO4S,sNO3S,sNH4S,sSiO2W
-   real(rk)                  :: sDDetS,sNDetS,sPDetS,sSiDetS
+   real(rk)                  :: sDPOMS,sNPOMS,sPPOMS,sSiPOMS
 !  Nutrients rations
    real(rk)   :: rPDDiatS,rNDDiatS
    real(rk)   :: rPDGrenS,rNDGrenS
@@ -261,12 +261,12 @@
    real(rk)   :: tNPrimNH4S,tNExcrPhytS,tNMortPhytNH4S,tNMortPhytS
    real(rk)   :: tNPrimNO3S
    real(rk)   :: tPPrimPO4S,tPExcrPhytS,tPMortPhytPO4S,tPMortPhytS
-   real(rk)   :: tDPrimDetS,tDMortPhytS
-   real(rk)   :: tNPrimDetS,tNMortPhytDetS
-   real(rk)   :: tPPrimDetS,tPMortPhytDetS
-   real(rk)   :: tSiPrimDetS,tSiMortDiatS
-   real(rk)   :: tSiExcrDiatS,tSiPrimDisDetS
-   real(rk)   :: tDPrimDisDetS,tNPrimDisDetS,tPPrimDisDetS
+   real(rk)   :: tDPrimPOMS,tDMortPhytS
+   real(rk)   :: tNPrimPOMS,tNMortPhytDetS
+   real(rk)   :: tPPrimPOMS,tPMortPhytDetS
+   real(rk)   :: tSiPrimPOMS,tSiMortDiatS
+   real(rk)   :: tSiExcrDiatS,tSiPrimDOMS
+   real(rk)   :: tDPrimDOMS,tNPrimDOMS,tPPrimDOMS
 !  Enter spatial loops (if any)
    _FABM_HORIZONTAL_LOOP_BEGIN_
 !-----------------------------------------------------------------------
@@ -288,10 +288,10 @@
    _GET_HORIZONTAL_(self%id_PO4poolS,sPO4S)
    _GET_HORIZONTAL_(self%id_NO3poolS,sNO3S)
    _GET_HORIZONTAL_(self%id_NH4poolS,sNH4S)
-   _GET_HORIZONTAL_(self%id_DDetpoolS,sDDetS)
-   _GET_HORIZONTAL_(self%id_NDetpoolS,sNDetS)
-   _GET_HORIZONTAL_(self%id_PDetpoolS,sPDetS)
-   _GET_HORIZONTAL_(self%id_SiDetpoolS,sSiDetS)
+   _GET_HORIZONTAL_(self%id_DPOMpoolS,sDPOMS)
+   _GET_HORIZONTAL_(self%id_NPOMpoolS,sNPOMS)
+   _GET_HORIZONTAL_(self%id_PPOMpoolS,sPPOMS)
+   _GET_HORIZONTAL_(self%id_SiPOMpoolS,sSiPOMS)
    _GET_(self%id_SiO2poolW,sSiO2W)
 !  retrieve environmental dependencies
    _GET_(self%id_uTm,uTm)
@@ -452,37 +452,37 @@
 !  Pore_water_P
    tPPrimPO4S = tPExcrPhytS + tPMortPhytPO4S
 !-----------------------------------------------------------------------
-!  sDDetS exchange
+!  sDPOMS exchange
 !-----------------------------------------------------------------------
 !  mortality_of_algae_on_bottom
    tDMortPhytS = tDMortDiatS + tDMortGrenS + tDMortBlueS
 !  Flux_to_sediment_detritus
-   tDPrimDetS = tDMortPhytS * (1.0_rk - self%fDisPrimDetS)
-   tDPrimDisDetS = tDMortPhytS * self%fDisPrimDetS
+   tDPrimPOMS = tDMortPhytS * (1.0_rk - self%fPrimDOMS)
+   tDPrimDOMS = tDMortPhytS * self%fPrimDOMS
 !-----------------------------------------------------------------------
 !  sNDetS exchange
 !-----------------------------------------------------------------------
 !  detrital_N_flux_from_died_Algae
    tNMortPhytDetS = tNMortPhytS - tNMortPhytNH4S
 !  Flux_to_sediment_detritus
-   tNPrimDetS = tNMortPhytDetS * (1.0_rk - self%fDisPrimDetS)
-   tNPrimDisDetS = tNMortPhytDetS * self%fDisPrimDetS
+   tNPrimPOMS = tNMortPhytDetS * (1.0_rk - self%fPrimDOMS)
+   tNPrimDOMS = tNMortPhytDetS * self%fPrimDOMS
 !-----------------------------------------------------------------------
 !  sPDetS exchange
 !-----------------------------------------------------------------------
 !  detrital_P_flux_from_died_Algae
    tPMortPhytDetS = tPMortPhytS - tPMortPhytPO4S
 !  Flux_to_sediment_detritus
-   tPPrimDetS = tPMortPhytDetS * (1.0_rk - self%fDisPrimDetS)
-   tPPrimDisDetS = tPMortPhytDetS * self%fDisPrimDetS
+   tPPrimPOMS = tPMortPhytDetS * (1.0_rk - self%fPrimDOMS)
+   tPPrimDOMS = tPMortPhytDetS * self%fPrimDOMS
 !-----------------------------------------------------------------------
 !  sSiDetS exchange
 !-----------------------------------------------------------------------
 !  mortality_of_bottom_Algae
    tSiMortDiatS = self%cSiDDiat * tDMortDiatS
 !  Sediment_detritus
-   tSiPrimDetS = tSiMortDiatS* (1.0_rk - self%fDisPrimDetS)
-   tSiPrimDisDetS = tSiMortDiatS * self%fDisPrimDetS
+   tSiPrimPOMS = tSiMortDiatS* (1.0_rk - self%fPrimDOMS)
+   tSiPrimDOMS = tSiMortDiatS * self%fPrimDOMS
 !-----------------------------------------------------------------------
 !  sSiO2W exchange
 !-----------------------------------------------------------------------
@@ -506,22 +506,22 @@
    _SET_ODE_BEN_(self%id_PO4poolS,          tPPrimPO4S)
    _SET_ODE_BEN_(self%id_NO3poolS,          tNPrimNO3S)
    _SET_ODE_BEN_(self%id_NH4poolS,          tNPrimNH4S)
-   _SET_ODE_BEN_(self%id_DDetpoolS,         tDPrimDetS)
-   _SET_ODE_BEN_(self%id_NDetpoolS,         tNPrimDetS)
-   _SET_ODE_BEN_(self%id_PDetpoolS,         tPPrimDetS)
-   _SET_ODE_BEN_(self%id_SiDetpoolS,        tSiPrimDetS)
+   _SET_ODE_BEN_(self%id_DPOMpoolS,         tDPrimPOMS)
+   _SET_ODE_BEN_(self%id_NPOMpoolS,         tNPrimPOMS)
+   _SET_ODE_BEN_(self%id_PPOMpoolS,         tPPrimPOMS)
+   _SET_ODE_BEN_(self%id_SiPOMpoolS,        tSiPrimPOMS)
    _SET_BOTTOM_EXCHANGE_(self%id_SiO2poolW, tSiExcrDiatS)
-   _SET_ODE_BEN_(self%id_DDisDetpoolS,      tDPrimDisDetS)
-   _SET_ODE_BEN_(self%id_NDisDetpoolS,      tNPrimDisDetS)
-   _SET_ODE_BEN_(self%id_PDisDetpoolS,      tPPrimDisDetS)
-   _SET_ODE_BEN_(self%id_SiDisDetpoolS,     tSiPrimDisDetS)
+   _SET_ODE_BEN_(self%id_DDOMpoolS,      tDPrimDOMS)
+   _SET_ODE_BEN_(self%id_NDOMpoolS,      tNPrimDOMS)
+   _SET_ODE_BEN_(self%id_PDOMpoolS,      tPPrimDOMS)
+   _SET_ODE_BEN_(self%id_SiDOMpoolS,     tSiPrimDOMS)
 !-----------------------------------------------------------------------
 !  Output dependent diagnostic variables for other modules
 !-----------------------------------------------------------------------
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_oSiDiatS,   oSiDiatS)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_rPDPhytS,   rPDPhytS)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_rNDPhytS,   rNDPhytS)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDPrimDetS, tDPrimDetS)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDPrimPOMS, tDPrimPOMS)
 #ifdef _DEVELOPMENT_
 !  output diagnostic variables for modular fluxes
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDPrimDiatS,    tDPrimDiatS*secs_pr_day)
@@ -536,10 +536,10 @@
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tPPrimPO4S,     tPPrimPO4S*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNPrimNO3S,     tNPrimNO3S*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNPrimNH4S,     tNPrimNH4S*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDPrimDetSflux, tDPrimDetS*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNPrimDetS,     tNPrimDetS*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tPPrimDetS,     tPPrimDetS*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tSiPrimDetS,    tSiPrimDetS*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDPrimPOMSflux, tDPrimPOMS*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNPrimPOMS,     tNPrimPOMS*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tPPrimPOMS,     tPPrimPOMS*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tSiPrimPOMS,    tSiPrimPOMS*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tSiExcrDiatS,   tSiExcrDiatS/dz*secs_pr_day)
 #endif
    _FABM_HORIZONTAL_LOOP_END_
