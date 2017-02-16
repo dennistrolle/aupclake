@@ -19,14 +19,14 @@
 !  id_sNBent,zoobenthos concentration in phosphorus element, gP/m**2
    type (type_bottom_state_variable_id) :: id_sDBent,id_sPBent,id_sNBent
 !  diagnostic variables for dependencies(without output)
-   type (type_horizontal_diagnostic_variable_id)       :: id_tDBenDetS
+   type (type_horizontal_diagnostic_variable_id)       :: id_tDBenPOMS
    type (type_horizontal_diagnostic_variable_id)       :: id_tDEnvFiAd ,id_aDSatFiAd
 #ifdef _DEVELOPMENT_
 !  diagnostic variable for modular fluxes
    type (type_horizontal_diagnostic_variable_id)       :: id_tDBenBent,id_tPBenBent,id_tNBenBent
    type (type_horizontal_diagnostic_variable_id)       :: id_tNBenNH4S,id_tNBenNO3S,id_tPBenPO4S
-   type (type_horizontal_diagnostic_variable_id)       :: id_tDBenDetSflux,id_tNBenDetS,id_tPBenDetS
-   type (type_horizontal_diagnostic_variable_id)       :: id_tSiBenDetS,id_tDBenDiatS,id_tNBenDiatS
+   type (type_horizontal_diagnostic_variable_id)       :: id_tDBenPOMSflux,id_tNBenPOMS,id_tPBenPOMS
+   type (type_horizontal_diagnostic_variable_id)       :: id_tSiBenPOMS,id_tDBenDiatS,id_tNBenDiatS
    type (type_horizontal_diagnostic_variable_id)       :: id_tPBenDiatS,id_tDBenGrenS,id_tNBenGrenS
    type (type_horizontal_diagnostic_variable_id)       :: id_tPBenGrenS,id_tDBenBlueS,id_tNBenBlueS
    type (type_horizontal_diagnostic_variable_id)       :: id_tPBenBlueS,id_tDAssFiAd,id_tNAssFiAd
@@ -34,13 +34,13 @@
    type (type_horizontal_diagnostic_variable_id)       :: id_tDBenDetW,id_tNBenDetW,id_tPBenDetW
 #endif
 !  state dependencies identifiers
-   type (type_bottom_state_variable_id)            :: id_DfoodDiatS,id_DfoodGrenS,id_DfoodBlueS,id_DDetpoolS
-   type (type_bottom_state_variable_id)            :: id_NfoodDiatS,id_NfoodGrenS,id_NfoodBlueS,id_NDetpoolS
-   type (type_bottom_state_variable_id)            :: id_PfoodDiatS,id_PfoodGrenS,id_PfoodBlueS,id_PDetpoolS
-   type (type_bottom_state_variable_id)            :: id_NH4poolS,id_NO3poolS,id_PO4poolS,id_SiDetpoolS
+   type (type_bottom_state_variable_id)            :: id_DfoodDiatS,id_DfoodGrenS,id_DfoodBlueS,id_DPOMpoolS
+   type (type_bottom_state_variable_id)            :: id_NfoodDiatS,id_NfoodGrenS,id_NfoodBlueS,id_NPOMpoolS
+   type (type_bottom_state_variable_id)            :: id_PfoodDiatS,id_PfoodGrenS,id_PfoodBlueS,id_PPOMpoolS
+   type (type_bottom_state_variable_id)            :: id_NH4poolS,id_NO3poolS,id_PO4poolS,id_SiPOMpoolS
    type (type_state_variable_id)                   :: id_DAdFish,id_NAdFish,id_PAdFish,id_DJvFish
-   type (type_state_variable_id)                   :: id_NH4poolW,id_PO4poolW,id_DDetpoolW,id_NDetpoolW,id_PDetpoolW
-   type (type_bottom_state_variable_id)            :: id_DDisDetpoolS,id_NDisDetpoolS, id_PDisDetpoolS,id_SiDisDetpoolS
+   type (type_state_variable_id)                   :: id_NH4poolW,id_PO4poolW,id_DPOMpoolW,id_NPOMpoolW,id_PPOMpoolW
+   type (type_bottom_state_variable_id)            :: id_DDOMpoolS,id_NDOMpoolS, id_PDOMpoolS,id_SiDOMpoolS
 !  environmental dependencies
    type (type_dependency_id)                       :: id_uTm,id_dz
    type ( type_horizontal_dependency_id)           :: id_aCovVeg
@@ -57,7 +57,7 @@
 !  minimum state variable values
    real(rk)   :: cDBentMin
 !  fraction of dissolved organics from zoobenthos
-   real(rk)   :: fDisBenDetS
+   real(rk)   :: fBenDOMS
    contains
 !  Module procedures
    procedure :: initialize
@@ -127,7 +127,7 @@
    call self%get_parameter(self%cPDGrenMax,   'cPDGrenMax',   'mgP/mgDW', 'maximum P/day ratio greens',                                    default=0.015_rk)
 !  the user defined minumun value for state variables
    call self%get_parameter(self%cDBentMin,    'cDBentMin',    'gDW/m2',   'minimun zoobenthos biomass in system',                       default=0.00001_rk)
-   call self%get_parameter(self%fDisBenDetS,  'fDisBenDetS',   '[-]',     'dissolved organic fraction from zoobenthos',                 default=0.5_rk)
+   call self%get_parameter(self%fBenDOMS,  'fBenDOMS',   '[-]',     'dissolved organic fraction from zoobenthos',                 default=0.5_rk)
 !  Register local state variable
    call self%register_state_variable(self%id_sDBent,'sDBent','g m-2','zoobenthos dry weight',     &
                                     initial_value=1.0_rk,minimum=self%cDBentMin)
@@ -136,7 +136,7 @@
    call self%register_state_variable(self%id_sNBent,'sNBent','g m-2','zoobenthos nitrogen content',     &
                                     initial_value=0.01_rk,minimum=self%cDBentMin * self%cNDBentRef)
 !  Register diagnostic variables for dependencies in other modules
-   call self%register_diagnostic_variable(self%id_tDBenDetS,     'tDBenDetS',    'g m-2 s-1', 'tDBenDetS',                output=output_none)
+   call self%register_diagnostic_variable(self%id_tDBenPOMS,     'tDBenPOMS',    'g m-2 s-1', 'tDBenPOMS',                output=output_none)
    call self%register_diagnostic_variable(self%id_tDEnvFiAd,     'tDEnvFiAd',    'g m-2',     'tDEnvFiAd',                output=output_none)
    call self%register_diagnostic_variable(self%id_aDSatFiAd,     'aDSatFiAd',    'g m-2',     'aDSatFiAd',                output=output_none)
 #ifdef _DEVELOPMENT_
@@ -147,10 +147,10 @@
    call self%register_diagnostic_variable(self%id_tNBenNH4S,     'tNBenNH4S',     'g m-2',    'zoobenthos_NH4S_change',   output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_tNBenNO3S,     'tNBenNO3S',     'g m-2',    'zoobenthos_NO3S_change',   output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_tPBenPO4S,     'tPBenPO4S',     'g m-2',    'zoobenthos_PO4S_change',   output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_tDBenDetSflux, 'tDBenDetSflux', 'g m-2',    'zoobenthos_DDetS_change',  output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_tNBenDetS,     'tNBenDetS',     'g m-2',    'zoobenthos_NDetS_change',  output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_tPBenDetS,     'tPBenDetS',     'g m-2',    'zoobenthos_PDetS_change',  output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_tSiBenDetS,    'tSiBenDetS',    'g m-2',    'zoobenthos_SiDetS_change', output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_tDBenPOMSflux, 'tDBenPOMSflux', 'g m-2',    'zoobenthos_DPOMS_change',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_tNBenPOMS,     'tNBenPOMS',     'g m-2',    'zoobenthos_NPOMS_change',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_tPBenPOMS,     'tPBenPOMS',     'g m-2',    'zoobenthos_PPOMS_change',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_tSiBenPOMS,    'tSiBenPOMS',    'g m-2',    'zoobenthos_SiPOMS_change', output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_tDBenDiatS,    'tDBenDiatS',    'g m-2',    'zoobenthos_DDiatS_change', output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_tNBenDiatS,    'tNBenDiatS',    'g m-2',    'zoobenthos_NDiatS_change', output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_tPBenDiatS,    'tPBenDiatS',    'g m-2',    'zoobenthos_PDiatS_change', output=output_instantaneous)
@@ -182,10 +182,10 @@
    call self%register_state_dependency(self%id_PfoodDiatS,   'diatom_as_food_P',                 'g m-2', 'diatom as food P')
    call self%register_state_dependency(self%id_PfoodGrenS,   'green_as_food_P',                  'g m-2', 'green as food P')
    call self%register_state_dependency(self%id_PfoodBlueS,   'blue_as_food_P',                   'g m-2', 'blue as food P')
-   call self%register_state_dependency(self%id_DDetpoolS,    'detritus_DW_pool_sediment',        'g m-2', 'detritus DW pool in sediment')
-   call self%register_state_dependency(self%id_PDetpoolS,    'detritus_P_pool_sediment',         'g m-2', 'detritus P pool in sediment')
-   call self%register_state_dependency(self%id_NDetpoolS,    'detritus_N_pool_sediment',         'g m-2', 'detritus N pool in sediment')
-   call self%register_state_dependency(self%id_SiDetpoolS,   'detritus_Si_pool_sediment',        'g m-2', 'detritus Si pool sediment')
+   call self%register_state_dependency(self%id_DPOMpoolS,    'POM_DW_pool_sediment',        'g m-2', 'detritus DW pool in sediment')
+   call self%register_state_dependency(self%id_PPOMpoolS,    'POM_P_pool_sediment',         'g m-2', 'detritus P pool in sediment')
+   call self%register_state_dependency(self%id_NPOMpoolS,    'POM_N_pool_sediment',         'g m-2', 'detritus N pool in sediment')
+   call self%register_state_dependency(self%id_SiPOMpoolS,   'POM_Si_pool_sediment',        'g m-2', 'detritus Si pool sediment')
    call self%register_state_dependency(self%id_NH4poolS,     'NH4_pool_sediment',                'g m-2', 'NH4 pool in sediment')
    call self%register_state_dependency(self%id_NO3poolS,     'NO3_pool_sediment',                'g m-2', 'NO3 pool in sediment')
    call self%register_state_dependency(self%id_PO4poolS,     'PO4_pool_sediment',                'g m-2', 'PO4 pool in sediment')
@@ -194,14 +194,14 @@
    call self%register_state_dependency(self%id_PAdFish,      'adult_fish_phosphorus',            'g m-3', 'adult fish phosphorus')
    call self%register_state_dependency(self%id_NH4poolW,     'NH4_pool_water',                   'g m-3', 'NH4 pool in water')
    call self%register_state_dependency(self%id_PO4poolW,     'PO4_pool_water',                   'g m-3', 'PO4 pool in water')
-   call self%register_state_dependency(self%id_DDetpoolW,    'DDet_pool_water',                  'g m-3', 'DDet pool in water')
-   call self%register_state_dependency(self%id_NDetpoolW,    'NDet_pool_water',                  'g m-3', 'NDet pool in water')
-   call self%register_state_dependency(self%id_PDetpoolW,    'PDet_pool_water',                  'g m-3', 'PDet pool in water')
+   call self%register_state_dependency(self%id_DPOMpoolW,    'POM_DW_pool_water',                  'g m-3', 'DDet pool in water')
+   call self%register_state_dependency(self%id_NPOMpoolW,    'POM_N_pool_water',                  'g m-3', 'NDet pool in water')
+   call self%register_state_dependency(self%id_PPOMpoolW,    'POM_P_pool_water',                  'g m-3', 'PDet pool in water')
    call self%register_state_dependency(self%id_DJvFish,      'young_fish_biomass',               'g m-3', 'young fish biomass')
-   call self%register_state_dependency(self%id_DDisDetpoolS, 'dissolved_detritus_DW_sediment',   'g m-2', 'dissolved detritus DW in sediment')
-   call self%register_state_dependency(self%id_NDisDetpoolS, 'dissolved_detritus_N_sediment',    'g m-2', 'dissolved detritus N in sediment')
-   call self%register_state_dependency(self%id_PDisDetpoolS, 'dissolved_detritus_P_sediment',    'g m-2', 'dissolved detritus P in sediment')
-   call self%register_state_dependency(self%id_SiDisDetpoolS,'dissolved_detritus_Si_sediment',   'g m-2', 'dissolved detritus Si in sediment')
+   call self%register_state_dependency(self%id_DDOMpoolS,    'DOM_DW_pool_sediment',   'g m-2', 'dissolved detritus DW in sediment')
+   call self%register_state_dependency(self%id_NDOMpoolS,    'DOM_N_pool_sediment',    'g m-2', 'dissolved detritus N in sediment')
+   call self%register_state_dependency(self%id_PDOMpoolS,    'DOM_P_pool_sediment',    'g m-2', 'dissolved detritus P in sediment')
+   call self%register_state_dependency(self%id_SiDOMpoolS,   'DOM_Si_pool_sediment',   'g m-2', 'dissolved detritus Si in sediment')
 !  register diagnostic dependencies
    call self%register_dependency(self%id_aCovVeg,          'vegetation_coverage',       '[-]',  'vegetation coverage')
 !  register environmental dependencies
@@ -230,15 +230,15 @@
 !  environmental dependencies carriers
    real(rk)                   :: uTm,sDepthW,dz
 !  external links variable carriers
-   real(rk)         :: sDDiatS,sDGrenS,sDBlueS,sDDetS
-   real(rk)         :: sNDiatS,sNGrenS,sNBlueS,sNDetS
-   real(rk)         :: sPDiatS,sPGrenS,sPBlueS,sPDetS
+   real(rk)         :: sDDiatS,sDGrenS,sDBlueS,sDPOMS
+   real(rk)         :: sNDiatS,sNGrenS,sNBlueS,sNPOMS
+   real(rk)         :: sPDiatS,sPGrenS,sPBlueS,sPPOMS
    real(rk)         :: sDFiAd,sDFiJv
 !  variables for status auxilaries
    real(rk)          :: aDPhytS,aPPhytS,aNPhytS
    real(rk)          :: rPDBent,rNDBent
-   real(rk)          :: rPDBlueS,rPDGrenS,rPDDiatS,rPDDetS,rPDFoodBent
-   real(rk)          :: rNDDetS,rNDDiatS,rNDGrenS,rNDBlueS,rNDFoodBent
+   real(rk)          :: rPDBlueS,rPDGrenS,rPDDiatS,rPDPOMS,rPDFoodBent
+   real(rk)          :: rNDPOMS,rNDDiatS,rNDGrenS,rNDBlueS,rNDFoodBent
 !  variables for temperature functions
    real(rk)          :: uFunTmBent,uFunTmFish
 !  variables for DW fluxes
@@ -249,14 +249,14 @@
 !  variables for P fluxes
    real(rk)          :: tPBenBent,tPMigrBent,tPAssBent
    real(rk)          :: tPExcrBent,tPMortBent,aPFoodBent,afPAssBent
-   real(rk)          :: tPConsBent,tPConsDetBent,tPConsPhytBent
+   real(rk)          :: tPConsBent,tPConsPOMBent,tPConsPhytBent
    real(rk)          :: tPConsDiatBent,tPConsGrenBent,tPConsBlueBent
-   real(rk)          :: tDConsDetBent
+   real(rk)          :: tDConsPOMBent
 !  variables for N fluxes
    real(rk)          :: tNBenBent,tNMigrBent,tNAssBent
    real(rk)          :: tNExcrBent,tNMortBent,aNFoodBent,afNAssBent
    real(rk)          :: tNConsDiatBent,tNConsGrenBent,tNConsBlueBent
-   real(rk)          :: tNConsPhytBent,tNConsDetBent,tNConsBent
+   real(rk)          :: tNConsPhytBent,tNConsPOMBent,tNConsBent
 !  variables for exchange of NH4S
    real(rk)          :: tNBenNH4S,tNEgesBentNH4,tNEgesBent,tNMortBentNH4
 !  variables for exchange of NO3S
@@ -264,11 +264,11 @@
 !  variables for exchange of PO4S
    real(rk)          :: tPBenPO4S,tPEgesBentPO4,tPEgesBent,tPMortBentPO4
 !  variables for exchange for detritus
-   real(rk)          :: tDBenDetS,tDEgesBent,tNBenDetS,tNEgesBentDet
-   real(rk)          :: tNMortBentDet,tPBenDetS,tPEgesBentDet,tPMortBentDet
-   real(rk)          :: tSiBenDetS,tSiConsDiatBent
-   real(rk)          :: tDBenDetS_tot,tNBenDetS_tot,tPBenDetS_tot,tSiBenDetS_tot
-   real(rk)          :: tDBenDisDetS,tNBenDisDetS,tPBenDisDetS,tSiBenDisDetS
+   real(rk)          :: tDBenPOMS,tDEgesBent,tNBenPOMS,tNEgesBentDet
+   real(rk)          :: tNMortBentDet,tPBenPOMS,tPEgesBentDet,tPMortBentDet
+   real(rk)          :: tSiBenPOMS,tSiConsDiatBent
+   real(rk)          :: tDBenDetS,tNBenDetS,tPBenDetS,tSiBenDetS
+   real(rk)          :: tDBenDOMS,tNBenDOMS,tPBenDOMS,tSiBenDOMS
 !  variables for exchange for diatom
    real(rk)          :: tDBenDiatS,tNBenDiatS,tPBenDiatS
 !  variables for exchange for green algae
@@ -295,9 +295,9 @@
 !  Retrieve dependencies  value
 !-----------------------------------------------------------------------
 !  Retrieve state dependencie value
-   _GET_HORIZONTAL_(self%id_DDetpoolS,sDDetS)
-   _GET_HORIZONTAL_(self%id_NDetpoolS,sNDetS)
-   _GET_HORIZONTAL_(self%id_PDetpoolS,sPDetS)
+   _GET_HORIZONTAL_(self%id_DPOMpoolS,sDPOMS)
+   _GET_HORIZONTAL_(self%id_NPOMpoolS,sNPOMS)
+   _GET_HORIZONTAL_(self%id_PPOMpoolS,sPPOMS)
    _GET_HORIZONTAL_(self%id_DfoodDiatS,sDDiatS)
    _GET_HORIZONTAL_(self%id_DfoodGrenS,sDGrenS)
    _GET_HORIZONTAL_(self%id_DfoodBlueS,sDBlueS)
@@ -322,8 +322,8 @@
 !----------------------------------------------------------------------
    rPDBent=sPBent/(sDBent+NearZero)
    rNDBent=sNBent/(sDBent+NearZero)
-   rPDDetS=sPDetS/(sDDetS+NearZero)
-   rNDDetS=sNDetS/(sDDetS+NearZero)
+   rPDPOMS=sPPOMS/(sDPOMS+NearZero)
+   rNDPOMS=sNPOMS/(sDPOMS+NearZero)
    rPDBlueS=sPBlueS/(sDBlueS+NearZero)
    rPDGrenS=sPGrenS/(sDGrenS+NearZero)
    rPDDiatS=sPDiatS/(sDDiatS+NearZero)
@@ -403,7 +403,7 @@
 !  zoobenthos assimilation,DW
 !-----------------------------------------------------------------------
 !  food_for_zoobenthos
-   aDFoodBent = sDDetS + aDPhytS
+   aDFoodBent = sDPOMS + aDPhytS
 !  food_limitation_function_of_zoobenthos
    aDSatBent = aDFoodBent /(self%hDFoodBent + aDFoodBent)
 !  intrinsic_net_increase_rate_of_zoobenthos
@@ -415,7 +415,7 @@
 !  consumption_of_zoobenthos
    tDConsBent = tDAssBent / self%fDAssBent
 !  detritus_consumption_by_zoobenthos
-   tDConsDetBent = sDDetS / aDFoodBent * tDConsBent
+   tDConsPOMBent = sDPOMS / aDFoodBent * tDConsBent
 !  diatoms_consumption_by_zoobenthos
    tDConsDiatBent = sDDiatS / aDFoodBent * tDConsBent
 !  greens_consumption_by_zoobenthos
@@ -426,11 +426,11 @@
 !  zoobenthos assimilation,P
 !---------------------------------------------------------------------------
 !  food_for_zoobenthos
-   aPFoodBent = sPDetS + aPPhytS
+   aPFoodBent = sPPOMS + aPPhytS
 !  average_P/D_ratio_of_zoobenthos_food
    rPDFoodBent = aPFoodBent /(aDFoodBent+NearZero)
 !  detrital_P_consumption_by_zoobenthos
-   tPConsDetBent = rPDDetS * tDConsDetBent
+   tPConsPOMBent = rPDPOMS * tDConsPOMBent
 !  diatom_P_consumption_by_zoobenthos
    tPConsDiatBent = rPDDiatS * tDConsDiatBent
 !  greens_P_consumption_by_zoobenthos
@@ -440,7 +440,7 @@
 !  phytoplankton_P_consumption_by_zoobenthos
    tPConsPhytBent = tPConsDiatBent + tPConsGrenBent + tPConsBlueBent
 !  total_P_consumption_of_zoobenthos
-   tPConsBent = tPConsDetBent + tPConsPhytBent
+   tPConsBent = tPConsPOMBent + tPConsPhytBent
 !  P_assim._efficiency_of_zoobenthos
    afPAssBent = min(1.0_rk,self%cPDBentRef / rPDFoodBent * self%fDAssBent)
 !  P_assimilation_of_zoobenthos
@@ -449,11 +449,11 @@
 !  zoobenthos assimilation,N
 !---------------------------------------------------------------------------
 !  food_for_zoobenthos
-   aNFoodBent = sNDetS + aNPhytS
+   aNFoodBent = sNPOMS + aNPhytS
 !  average_N/D_ratio_of_zoobenthos_food
    rNDFoodBent = aNFoodBent /(aDFoodBent+NearZero)
 !  detrital_N_consumption_by_zoobenthos
-   tNConsDetBent = rNDDetS * tDConsDetBent
+   tNConsPOMBent = rNDPOMS * tDConsPOMBent
 !  diatom_N_consumption_by_zoobenthos
    tNConsDiatBent = rNDDiatS * tDConsDiatBent
 !  greens_N_consumption_by_zoobenthos
@@ -463,7 +463,7 @@
 !  phytoplankton_N_consumption_by_zoobenthos
    tNConsPhytBent = tNConsDiatBent + tNConsGrenBent + tNConsBlueBent
 !  total_N_consumption_of_zoobenthos
-   tNConsBent = tNConsDetBent + tNConsPhytBent
+   tNConsBent = tNConsPOMBent + tNConsPhytBent
 !  N_assim._efficiency_of_zoobenthos
    afNAssBent = min(1.0_rk,self%cNDBentRef / rNDFoodBent * self%fDAssBent)
 !  N_assimilation_of_zoobenthos
@@ -587,30 +587,30 @@
 !  Update detritus in sediment(DW,N,P)
 !-----------------------------------------------------------------------
 !  total_flux_of_DW_in_Sediment_detritus_in_lake
-   tDBenDetS_tot = - tDConsDetBent + tDEgesBent + tDMortBent
-   tDBenDetS = tDBenDetS_tot * (1.0_rk -self%fDisBenDetS)
-   tDBenDisDetS = tDBenDetS_tot * self%fDisBenDetS
+   tDBenDetS = - tDConsPOMBent + tDEgesBent + tDMortBent
+   tDBenPOMS = tDBenDetS * (1.0_rk -self%fBenDOMS)
+   tDBenDOMS = tDBenDetS * self%fBenDOMS
 !  part_of_died_zoobenthos_N_becoming_detrital_N
    tNMortBentDet = (1.0_rk-self%fDissMortBent)*tNMortBent
 !  detrital_N_egestion_of_zoobenthos
    tNEgesBentDet = (1.0_rk - self%fDissEgesBent) * tNEgesBent
 !  total_flux_of_N_in_Sediment_N_in_lake_sediment
-   tNBenDetS_tot = - tNConsDetBent + tNEgesBentDet + tNMortBentDet
-   tNBenDetS = tNBenDetS_tot * (1.0_rk -self%fDisBenDetS)
-   tNBenDisDetS = tNBenDetS_tot * self%fDisBenDetS
+   tNBenDetS = - tNConsPOMBent + tNEgesBentDet + tNMortBentDet
+   tNBenPOMS = tNBenDetS * (1.0_rk -self%fBenDOMS)
+   tNBenDOMS = tNBenDetS * self%fBenDOMS
 !  part_of_died_zoobenthos_P_becoming_detrital_P
    tPMortBentDet = (1.0_rk-self%fDissMortBent)*tPMortBent
 !  detrital_P_egestion_of_zoobenthos
    tPEgesBentDet = (1.0_rk - self%fDissEgesBent) * tPEgesBent
 !  total_flux_of_P_in_Sediment_P_in_lake
-   tPBenDetS_tot = - tPConsDetBent + tPEgesBentDet + tPMortBentDet
-   tPBenDetS = tPBenDetS_tot * (1.0_rk -self%fDisBenDetS)
-   tPBenDisDetS = tPBenDetS_tot * self%fDisBenDetS
+   tPBenDetS = - tPConsPOMBent + tPEgesBentDet + tPMortBentDet
+   tPBenPOMS = tPBenDetS * (1.0_rk -self%fBenDOMS)
+   tPBenDOMS = tPBenDetS * self%fBenDOMS
 !  diatom_consumption_by_zoobenthos
    tSiConsDiatBent = self%cSiDDiat * tDConsDiatBent
 !  total_flux_of_silica_in_sediment_detritus
-   tSiBenDetS = tSiConsDiatBent * (1.0_rk - self%fDisBenDetS)
-   tSiBenDisDetS = tSiConsDiatBent * self%fDisBenDetS
+   tSiBenPOMS = tSiConsDiatBent * (1.0_rk - self%fBenDOMS)
+   tSiBenDOMS = tSiConsDiatBent * self%fBenDOMS
 !-----------------------------------------------------------------------
 !  Update diatom in sediment(DW,N,P)
 !-----------------------------------------------------------------------
@@ -652,14 +652,14 @@
    _SET_ODE_BEN_(self%id_NH4poolS,     tNBenNH4S)
    _SET_ODE_BEN_(self%id_NO3poolS,     tNBenNO3S)
    _SET_ODE_BEN_(self%id_PO4poolS,     tPBenPO4S)
-   _SET_ODE_BEN_(self%id_DDetpoolS,    tDBenDetS)
-   _SET_ODE_BEN_(self%id_NDetpoolS,    tNBenDetS)
-   _SET_ODE_BEN_(self%id_PDetpoolS,    tPBenDetS)
-   _SET_ODE_BEN_(self%id_SiDetpoolS,   tSiBenDetS)
-   _SET_ODE_BEN_(self%id_DDisDetpoolS, tDBenDisDetS)
-   _SET_ODE_BEN_(self%id_NDisDetpoolS, tNBenDisDetS)
-   _SET_ODE_BEN_(self%id_PDisDetpoolS, tPBenDisDetS)
-   _SET_ODE_BEN_(self%id_SiDisDetpoolS,tSiBenDisDetS)
+   _SET_ODE_BEN_(self%id_DPOMpoolS,    tDBenPOMS)
+   _SET_ODE_BEN_(self%id_NPOMpoolS,    tNBenPOMS)
+   _SET_ODE_BEN_(self%id_PPOMpoolS,    tPBenPOMS)
+   _SET_ODE_BEN_(self%id_SiPOMpoolS,   tSiBenPOMS)
+   _SET_ODE_BEN_(self%id_DDOMpoolS, tDBenDOMS)
+   _SET_ODE_BEN_(self%id_NDOMpoolS, tNBenDOMS)
+   _SET_ODE_BEN_(self%id_PDOMpoolS, tPBenDOMS)
+   _SET_ODE_BEN_(self%id_SiDOMpoolS,tSiBenDOMS)
 !  update phytoplanktons in sediment
    _SET_ODE_BEN_(self%id_DfoodDiatS, tDBenDiatS)
    _SET_ODE_BEN_(self%id_NfoodDiatS, tNBenDiatS)
@@ -676,14 +676,14 @@
    _SET_BOTTOM_EXCHANGE_(self%id_PAdFish,   tPAssFiAd)
    _SET_BOTTOM_EXCHANGE_(self%id_NH4poolW,  tNEgesFiAdNH4)
    _SET_BOTTOM_EXCHANGE_(self%id_PO4poolW,  tPEgesFiAdPO4)
-   _SET_BOTTOM_EXCHANGE_(self%id_DDetpoolW, tDEgesFiAd)
-   _SET_BOTTOM_EXCHANGE_(self%id_NDetpoolW, tNEgesFiAdDet)
-   _SET_BOTTOM_EXCHANGE_(self%id_PDetpoolW, tPEgesFiAdDet)
+   _SET_BOTTOM_EXCHANGE_(self%id_DPOMpoolW, tDEgesFiAd)
+   _SET_BOTTOM_EXCHANGE_(self%id_NPOMpoolW, tNEgesFiAdDet)
+   _SET_BOTTOM_EXCHANGE_(self%id_PPOMpoolW, tPEgesFiAdDet)
 !-----------------------------------------------------------------------
 !  output diagnostic variables for external links
 !-----------------------------------------------------------------------
 !  Export diagnostic variables
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDBenDetS,tDBenDetS)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDBenPOMS,tDBenPOMS)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDEnvFiAd,tDEnvFiAd)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_aDSatFiAd,aDSatFiAd)
 #ifdef _DEVELOPMENT_
@@ -694,10 +694,10 @@
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNBenNH4S,     tNBenNH4S*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNBenNO3S,     tNBenNO3S*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tPBenPO4S,     tPBenPO4S*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDBenDetSflux, tDBenDetS*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNBenDetS,     tNBenDetS*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tPBenDetS,     tPBenDetS*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tSiBenDetS,    tSiBenDetS*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDBenPOMSflux, tDBenPOMS*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNBenPOMS,     tNBenPOMS*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tPBenPOMS,     tPBenPOMS*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tSiBenPOMS,    tSiBenPOMS*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDBenDiatS,    tDBenDiatS*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNBenDiatS,    tNBenDiatS*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tPBenDiatS,    tPBenDiatS*secs_pr_day)

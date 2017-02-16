@@ -514,13 +514,8 @@
 !  Update detrital DW in water
 !-----------------------------------------------------------------------
 !  total_Zoo_flux_of_DW_in_Detritus_in_lake_wate
-#ifdef _ORIGINAL_
    wDZooDetW = - wDConsPOMZoo + wDEgesZoo + wDMortZoo
    wDZooPOMW = wDZooDetW * (1.0_rk - self%fZooDOMW)
-   wDZooDOMW = wDZooDetW * self%fZooDOMW
-#endif
-   wDZooDetW = wDEgesZoo + wDMortZoo
-   wDZooPOMW = wDZooDetW * (1.0_rk - self%fZooDOMW)- wDConsPOMZoo
    wDZooDOMW = wDZooDetW * self%fZooDOMW
 !-----------------------------------------------------------------------
 !  Update detrital N in water
@@ -530,13 +525,8 @@
 !  detrital_N_egestion
    wNEgesZooDet = wNEgesZoo - wNEgesZooNH4
 !  total_Zoo_flux_of_N_in_Detritus_in_lake_water
-#ifdef _ORIGINAL_
    wNZooDetW = - wNConsPOMZoo + wNEgesZooDet + wNMortZooDet
    wNZooPOMW = wNZooDetW * (1.0_rk - self%fZooDOMW)
-   wNZooDOMW = wNZooDetW * self%fZooDOMW
-#endif
-   wNZooDetW = wNEgesZooDet + wNMortZooDet
-   wNZooPOMW = wNZooDetW * (1.0_rk - self%fZooDOMW)- wNConsPOMZoo
    wNZooDOMW = wNZooDetW * self%fZooDOMW
 !-----------------------------------------------------------------------
 !  Update detrital P in water
@@ -546,13 +536,8 @@
 !  detrital_P_egestion
    wPEgesZooDet = wPEgesZoo - wPEgesZooPO4
 !  total_Zoo_flux_of_P_in_Detritus_in_lake_water
-#ifdef _ORIGINAL_
    wPZooDetW = - wPConsPOMZoo + wPEgesZooDet + wPMortZooDet
    wPZooPOMW = wPZooDetW * (1.0_rk - self%fZooDOMW)
-   wPZooDOMW = wPZooDetW * self%fZooDOMW
-#endif
-   wPZooDetW = wPEgesZooDet + wPMortZooDet
-   wPZooPOMW = wPZooDetW * (1.0_rk - self%fZooDOMW)- wPConsPOMZoo
    wPZooDOMW = wPZooDetW * self%fZooDOMW
 !-----------------------------------------------------------------------
 !  Update detrital Si in water
