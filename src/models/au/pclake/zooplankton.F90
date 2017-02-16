@@ -24,17 +24,17 @@
 !  diagnostic variables for dependencies(without output)
 !  diagnostic variables for modular fluxes
    type (type_diagnostic_variable_id)       :: id_wDZoo,id_wNZoo,id_wPZoo
-   type (type_diagnostic_variable_id)       :: id_wNZooNO3W,id_wPZooPO4W,id_wDZooDetW
-   type (type_diagnostic_variable_id)       :: id_wNZooDetW,id_wPZooDetW,id_wSiZooDetW
+   type (type_diagnostic_variable_id)       :: id_wNZooNO3W,id_wPZooPO4W,id_wDZooPOMW
+   type (type_diagnostic_variable_id)       :: id_wNZooPOMW,id_wPZooPOMW,id_wSiZooPOMW
    type (type_diagnostic_variable_id)       :: id_wDZooDiatW,id_wNZooDiatW,id_wPZooDiatW
    type (type_diagnostic_variable_id)       :: id_wDZooGrenW,id_wNZooGrenW,id_wPZooGrenW
    type (type_diagnostic_variable_id)       :: id_wDZooBlueW,id_wNZooBlueW,id_wPZooBlueW
 #endif
 !  state dependencies identifiers
-   type (type_state_variable_id)            :: id_DfoodDiat,id_DfoodGren,id_DfoodBlue,id_DDetpoolW
-   type (type_state_variable_id)            :: id_NfoodDiat,id_NfoodGren,id_NfoodBlue,id_NDetpoolW
-   type (type_state_variable_id)            :: id_PfoodDiat,id_PfoodGren,id_PfoodBlue,id_PDetpoolW,id_SiDetpoolW
-   type (type_state_variable_id)            :: id_DDisDetpoolW, id_NDisDetpoolW,id_PDisDetpoolW,id_SiDisDetpoolW
+   type (type_state_variable_id)            :: id_DfoodDiat,id_DfoodGren,id_DfoodBlue,id_DPOMpoolW
+   type (type_state_variable_id)            :: id_NfoodDiat,id_NfoodGren,id_NfoodBlue,id_NPOMpoolW
+   type (type_state_variable_id)            :: id_PfoodDiat,id_PfoodGren,id_PfoodBlue,id_PPOMpoolW,id_SiPOMpoolW
+   type (type_state_variable_id)            :: id_DDOMpoolW, id_NDOMpoolW,id_PDOMpoolW,id_SiDOMpoolW
    type (type_state_variable_id)            :: id_NH4poolW,id_NO3poolW,id_PO4poolW
 !  environmental dependencies
    type (type_dependency_id)                :: id_uTm ,id_dz
@@ -45,7 +45,7 @@
    real(rk)      :: cSigTmZoo,cTmOptZoo
 !  parameters for zooplankton
    real(rk)      :: cDCarrZoo,kMortZoo,kDRespZoo,cPrefDiat
-   real(rk)      :: cPrefGren,cPrefBlue,cPrefDet,hFilt
+   real(rk)      :: cPrefGren,cPrefBlue,cPrefPOM,hFilt
    real(rk)      :: fDAssZoo,cFiltMax
    real(rk)      :: cPDZooRef,cNDZooRef
    real(rk)      :: fDissEgesZoo,fDissMortZoo,cSiDDiat
@@ -57,7 +57,7 @@
 !  minimum state variable values
    real(rk)   :: cDZooMin
 !  dissolved fraction of organic matter
-   real(rk)   :: fDisZooDetW
+   real(rk)   :: fZooDOMW
 
    contains
 
@@ -106,7 +106,7 @@
    call self%get_parameter(self%cPrefDiat,     'cPrefDiat',     '[-]',       'selection factor for diatoms',                                                   default=0.75_rk)
    call self%get_parameter(self%cPrefGren,     'cPrefGren',     '[-]',       'selection factor for greens',                                                    default=0.75_rk)
    call self%get_parameter(self%cPrefBlue,     'cPrefBlue',     '[-]',       'selection factor for blue-greens',                                           default=0.125_rk)
-   call self%get_parameter(self%cPrefDet,      'cPrefDet',      '[-]',       'selection factor for detritus',                                                  default=0.25_rk)
+   call self%get_parameter(self%cPrefPOM,      'cPrefPOM',      '[-]',       'selection factor for detritus',                                                  default=0.25_rk)
    call self%get_parameter(self%hFilt,         'hFilt',         'gDW m-3',   'half-sat. food concentration for filtering',                                             default=1.0_rk)
    call self%get_parameter(self%fDAssZoo,      'fDAssZoo',      '[-]',       'dry weight assimilation efficiency of herb. zooplankton',                                default=0.35_rk)
    call self%get_parameter(self%cFiltMax,      'cFiltMax',      'ltr/mgDW/d','maximum filtering rate',                                                         default=4.5_rk,scale_factor=1.0_rk/secs_pr_day)
@@ -129,7 +129,7 @@
    call self%get_parameter(self%cPDGrenMax,    'cPDGrenMax',    'mgP/mgDW',  'maximum P/day ratio greens',                                                        default=0.015_rk)
 !  the user defined minumun value for state variables
    call self%get_parameter(self%cDZooMin,      'cDZooMin',      'gDW/m3',    'minimun zooplankton biomass in system',                                          default=0.00001_rk)
-   call self%get_parameter(self%fDisZooDetW,   'fDisZooDetW',   '[-]',       'dissolved organic fraction from zooplankton',                                    default=0.5_rk)
+   call self%get_parameter(self%fZooDOMW,   'fZooDOMW',   '[-]',       'dissolved organic fraction from zooplankton',                                    default=0.5_rk)
    
 !  Register local state variable
 !  zooplankton
@@ -152,17 +152,17 @@
    call self%register_state_dependency(self%id_PfoodDiat,     'diatom_as_food_P',             'g m-3', 'diatom as food P')
    call self%register_state_dependency(self%id_PfoodGren,     'green_as_food_P',              'g m-3', 'green as food P')
    call self%register_state_dependency(self%id_PfoodBlue,     'blue_as_food_P',               'g m-3', 'blue as food P')
-   call self%register_state_dependency(self%id_DDetpoolW,     'detritus_DW_pool_water',       'g m-3', 'detritus DW pool in water')
-   call self%register_state_dependency(self%id_NDetpoolW,     'detritus_N_pool_water',        'g m-3', 'detritus N pool in water')
-   call self%register_state_dependency(self%id_PDetpoolW,     'detritus_P_pool_water',        'g m-3', 'detritus P pool in water')
-   call self%register_state_dependency(self%id_SiDetpoolW,    'detritus_Si_pool_water',       'g m-3', 'detritus Si_pool_water')
+   call self%register_state_dependency(self%id_DPOMpoolW,     'POM_DW_pool_water',            'g m-3', 'POM DW pool in water')
+   call self%register_state_dependency(self%id_NPOMpoolW,     'POM_N_pool_water',             'g m-3', 'POM N pool in water')
+   call self%register_state_dependency(self%id_PPOMpoolW,     'POM_P_pool_water',             'g m-3', 'POM P pool in water')
+   call self%register_state_dependency(self%id_SiPOMpoolW,    'POM_Si_pool_water',            'g m-3', 'POM Si pool water')
    call self%register_state_dependency(self%id_NH4poolW,      'NH4_pool_water',               'g m-3', 'NH4 pool in water')
    call self%register_state_dependency(self%id_NO3poolW,      'NO3_pool_water',               'g m-3', 'NO3 pool in water')
    call self%register_state_dependency(self%id_PO4poolW,      'PO4_pool_water',               'g m-3', 'PO4 pool in water')
-   call self%register_state_dependency(self%id_DDisDetpoolW,  'dissolved_detritus_DW_water',  'g m-3', 'dissolved detritus DW')
-   call self%register_state_dependency(self%id_NDisDetpoolW,  'dissolved_detritus_N_water',   'g m-3', 'dissolved detritus N')
-   call self%register_state_dependency(self%id_PDisDetpoolW,  'dissolved_detritus_P_water',   'g m-3', 'dissolved detritus P')
-   call self%register_state_dependency(self%id_SiDisDetpoolW, 'dissolved_detritus_Si_water',  'g m-3', 'dissolved detritus Si')
+   call self%register_state_dependency(self%id_DDOMpoolW,     'DOM_DW_pool_water',            'g m-3', 'DOM DW in water')
+   call self%register_state_dependency(self%id_NDOMpoolW,     'DOM_N_pool_water',             'g m-3', 'DOM N in water')
+   call self%register_state_dependency(self%id_PDOMpoolW,     'DOM_P_pool_water',             'g m-3', 'DOM P in water')
+   call self%register_state_dependency(self%id_SiDOMpoolW,    'DOM_Si_pool_water',            'g m-3', 'DOM Si in water')
 #ifdef _DEVELOPMENT_
 !  register diagnostic variables for modular fluxes
    call self%register_diagnostic_variable(self%id_wDZoo,      'wDZoo',                   'g m-3 s-1', 'zooplankton_DZoo_change',   output=output_instantaneous)
@@ -170,10 +170,10 @@
    call self%register_diagnostic_variable(self%id_wPZoo,      'wPZoo',                   'g m-3 s-1', 'zooplankton_PZoo_change',   output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_wNZooNO3W,  'wNZooNO3W',               'g m-3 s-1', 'zooplankton_NO3W_change',   output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_wPZooPO4W,  'wPZooPO4W',               'g m-3 s-1', 'zooplankton_PO4W_change',   output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wDZooDetW,  'wDZooDetW',               'g m-3 s-1', 'zooplankton_DDetW_change',  output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wNZooDetW,  'wNZooDetW',               'g m-3 s-1', 'zooplankton_NDetW_change',  output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wPZooDetW,  'wPZooDetW',               'g m-3 s-1', 'zooplankton_PDetW_change',  output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wSiZooDetW, 'wSiZooDetW',              'g m-3 s-1', 'zooplankton_SiDetW_change', output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wDZooPOMW,  'wDZooPOMW',               'g m-3 s-1', 'zooplankton_DPOMW_change',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wNZooPOMW,  'wNZooPOMW',               'g m-3 s-1', 'zooplankton_NPOMW_change',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wPZooPOMW,  'wPZooPOMW',               'g m-3 s-1', 'zooplankton_PPOMW_change',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wSiZooPOMW, 'wSiZooPOMW',              'g m-3 s-1', 'zooplankton_SiPOMW_change', output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_wDZooDiatW, 'wDZooDiatW',              'g m-3 s-1', 'zooplankton_DDiat_change',  output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_wNZooDiatW, 'wNZooDiatW',              'g m-3 s-1', 'zooplankton_NDiat_change',  output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_wPZooDiatW, 'wPZooDiatW',              'g m-3 s-1', 'zooplankton_PDiat_change',  output=output_instantaneous)
@@ -213,12 +213,12 @@
 !  carriers for local state variables
    real(rk)      :: sDZoo,sNZoo,sPZoo
 !  carriers for exteral link state variables
-   real(rk)      :: sDDiatW,sDGrenW,sDBlueW,sDDetW
-   real(rk)      :: sNDiatW,sNGrenW,sNBlueW,sNDetW
-   real(rk)      :: sPDiatW,sPGrenW,sPBlueW,sPDetW
+   real(rk)      :: sDDiatW,sDGrenW,sDBlueW,sDPOMW
+   real(rk)      :: sNDiatW,sNGrenW,sNBlueW,sNPOMW
+   real(rk)      :: sPDiatW,sPGrenW,sPBlueW,sPPOMW
 !  nutrient ratios variables
-   real(rk)      :: rNDDiatW,rNDGrenW,rNDBlueW,rNDDetW
-   real(rk)      :: rPDDiatW,rPDGrenW,rPDBlueW,rPDDetW
+   real(rk)      :: rNDDiatW,rNDGrenW,rNDBlueW,rNDPOMW
+   real(rk)      :: rPDDiatW,rPDGrenW,rPDBlueW,rPDPOMW
    real(rk)      :: rPDZoo,rNDZoo
 !  variables for temperature function
    real(rk)      :: uFunTmZoo
@@ -228,13 +228,13 @@
    real(rk)      :: oDOMW,oDPhytW
    real(rk)      :: aCorDRespZoo
 !  variables for N assimilation
-   real(rk)      :: afNAssZoo,wNConsDetZoo,wDConsDetZoo,wDConsZoo
+   real(rk)      :: afNAssZoo,wNConsPOMZoo,wDConsPOMZoo,wDConsZoo
    real(rk)      :: wNConsZoo,wNConsPhytZoo,wNConsDiatZoo, wNConsGrenZoo,wNConsBlueZoo
    real(rk)      :: wDConsDiatZoo,wDConsGrenZoo,wDConsBlueZoo
    real(rk)      :: rNDFoodZoo,oNFoodZoo
 !  variables for P assimilation
    real(rk)      :: rPDFoodZoo,oPFoodZoo,afPAssZoo,wPConsZoo
-   real(rk)      :: wPConsPhytZoo,wPConsDetZoo,wPConsDiatZoo
+   real(rk)      :: wPConsPhytZoo,wPConsPOMZoo,wPConsDiatZoo
    real(rk)      :: wPConsGrenZoo,wPConsBlueZoo
 !  variables for Zooplankton dw  fluxes
    real(rk)      :: wDZoo,wDAssZoo,wDRespZoo,wDMortZoo
@@ -251,17 +251,17 @@
 !  PCLake_Osis, /m^2
    real(rk)     :: wPZooPO4W,wPEgesZooPO4,wPEgesZoo,wPMortZooPO4
 !  variables for exchange of Detritus DW
-   real(rk)     :: wDZooDetW,wDEgesZoo
+   real(rk)     :: wDZooPOMW,wDEgesZoo
 !  variables for exchange of Detritus N
-   real(rk)     :: wNZooDetW,wNEgesZooDet,wNMortZooDet
+   real(rk)     :: wNZooPOMW,wNEgesZooDet,wNMortZooDet
 !  variables for exchange of detritus P
-   real(rk)     :: wPZooDetW,wPEgesZooDet,wPMortZooDet
+   real(rk)     :: wPZooPOMW,wPEgesZooDet,wPMortZooDet
 !  variables for exchange of detritus Si
-   real(rk)     :: wSiZooDetW,wSiConsDiatZoo
+   real(rk)     :: wSiZooPOMW,wSiConsDiatZoo
 !  variables for exchange of dissolved organics
-   real(rk)     :: wDZooDetW_tot,wNZooDetW_tot,wPZooDetW_tot
-   real(rk)     :: wSiZooDetW_tot,wDZooDisDetW,wNZooDisDetW
-   real(rk)     :: wPZooDisDetW,wSiZooDisDetW
+   real(rk)     :: wDZooDetW,wNZooDetW,wPZooDetW
+   real(rk)     :: wSiZooDetW,wDZooDOMW,wNZooDOMW
+   real(rk)     :: wPZooDOMW,wSiZooDOMW
 !  variables for exchange of diatoms
    real(rk)     :: wDZooDiatW,wNZooDiatW,wPZooDiatW
 !  variables for exchange of green algae
@@ -284,15 +284,15 @@
    _GET_(self%id_DfoodDiat,sDDiatW)
    _GET_(self%id_DfoodGren,sDGrenW)
    _GET_(self%id_DfoodBlue,sDBlueW)
-   _GET_(self%id_DDetpoolW,sDDetW)
+   _GET_(self%id_DPOMpoolW,sDPOMW)
    _GET_(self%id_NfoodDiat,sNDiatW)
    _GET_(self%id_NfoodGren,sNGrenW)
    _GET_(self%id_NfoodBlue,sNBlueW)
-   _GET_(self%id_NDetpoolW,sNDetW)
+   _GET_(self%id_NPOMpoolW,sNPOMW)
    _GET_(self%id_PfoodDiat,sPDiatW)
    _GET_(self%id_PfoodGren,sPGrenW)
    _GET_(self%id_PfoodBlue,sPBlueW)
-   _GET_(self%id_PDetpoolW,sPDetW)
+   _GET_(self%id_PPOMpoolW,sPPOMW)
 !  retrieve environmental dependencies
    _GET_(self%id_uTm,uTm)
    _GET_GLOBAL_(self%id_Day,Day)
@@ -305,12 +305,12 @@
    rPDDiatW=sPDiatW/(sDDiatw+NearZero)
    rPDGrenW=sPGrenW/(sDGrenW+NearZero)
    rPDBlueW=sPBlueW/(sDBlueW+NearZero)
-   rPDDetW=sPDetW/(sDDetW+NearZero)
+   rPDPOMW=sPPOMW/(sDPOMW+NearZero)
 !  N/C_ratio of food
    rNDDiatW=sNDiatW/(sDDiatw+NearZero)
    rNDGrenW=sNGrenW/(sDGrenW+NearZero)
    rNDBlueW=sNBlueW/(sDBlueW+NearZero)
-   rNDDetW=sNDetW/(sDDetW+NearZero)
+   rNDPOMW=sNPOMW/(sDPOMW+NearZero)
    if ( rPDDiatW .GT. self%cPDDiatMax)  then
        rPDDiatW=self%cPDDiatMax
    elseif (rPDDiatW .LT. self%cPDDiatMin)  then
@@ -373,9 +373,9 @@
 !-----------------------------------------------------------------------
 !  organic_seston
    oDPhytW= sDDiatW+sDGrenW+sDBlueW
-   oDOMW = sDDetW + oDPhytW
+   oDOMW = sDPOMW + oDPhytW
 !  food_for_zooplankton
-   oDFoodZoo = self%cPrefDiat * sDDiatW + self%cPrefGren * sDGrenW + self%cPrefBlue * sDBlueW + self%cPrefDet * sDDetW
+   oDFoodZoo = self%cPrefDiat * sDDiatW + self%cPrefGren * sDGrenW + self%cPrefBlue * sDBlueW + self%cPrefPOM * sDPOMW
 !  max._assimilation_rate_of_zooplankton,temp._corrected
    ukDAssTmZoo = self%fDAssZoo * self%cFiltMax * uFunTmZoo * self%hFilt
 !  food_saturation_function_of_zooplankton
@@ -393,7 +393,7 @@
 !-----------------------------------------------------------------------
 !  Zooplankton_food
    oNFoodZoo = self%cPrefDiat*sNDiatW + self%cPrefGren*sNGrenW + &
-               & self%cPrefBlue*sNBlueW + self%cPrefDet*sNDetW
+               & self%cPrefBlue*sNBlueW + self%cPrefPOM*sNPOMW
 !  consumption_of_zooplankton
    wDConsZoo = wDAssZoo / self%fDAssZoo
 !  N/C_ratio_of_zooplankton_food
@@ -413,11 +413,11 @@
 !  total_N_phytoplankton_consumption_by_zoopl.
    wNConsPhytZoo = wNConsDiatZoo + wNConsGrenZoo + wNConsBlueZoo
 !  DW_detritus_consumption_by_zooplankton
-   wDConsDetZoo = self%cPrefDet*sDDetW / oDFoodZoo * wDConsZoo
+   wDConsPOMZoo = self%cPrefPOM*sDPOMW / oDFoodZoo * wDConsZoo
 !  consumption_of_detrital_N
-   wNConsDetZoo = rNDDetW*wDConsDetZoo
+   wNConsPOMZoo = rNDPOMW*wDConsPOMZoo
 !  total_N_consumption
-   wNConsZoo = wNConsPhytZoo + wNConsDetZoo
+   wNConsZoo = wNConsPhytZoo + wNConsPOMZoo
 !  N_assimilation_efficiency_of_herbivores
    afNAssZoo = min(1.0_rk,self%cNDZooRef / rNDFoodZoo * self%fDAssZoo)
 !  assimilation_by_herbivores
@@ -427,7 +427,7 @@
 !-----------------------------------------------------------------------
 !  Zooplankton_food
    oPFoodZoo = self%cPrefDiat*sPDiatW + self%cPrefGren*sPGrenW &
-               & + self%cPrefBlue*sPBlueW + self%cPrefDet*sPDetW
+               & + self%cPrefBlue*sPBlueW + self%cPrefPOM*sPPOMW
 !  P/D_ratio_of_zooplankton_food
    rPDFoodZoo = oPFoodZoo /(oDFoodZoo+NearZero)
 !  P_diatom_consumption_by_zoopl.
@@ -439,9 +439,9 @@
 !  total_P_phytoplankton_consumption_by_zoopl.
    wPConsPhytZoo = wPConsDiatZoo + wPConsGrenZoo + wPConsBlueZoo
 !  consumption_of_detrital_P
-   wPConsDetZoo = rPDDetW * wDConsDetZoo
+   wPConsPOMZoo = rPDPOMW * wDConsPOMZoo
 !  total_P_consumption
-   wPConsZoo = wPConsPhytZoo + wPConsDetZoo
+   wPConsZoo = wPConsPhytZoo + wPConsPOMZoo
 !  P_assimilation_efficiency_of_herbivores
    afPAssZoo = min(1.0_rk,self%cPDZooRef / rPDFoodZoo * self%fDAssZoo)
 !  assimilation_by_herbivores
@@ -513,10 +513,15 @@
 !-----------------------------------------------------------------------
 !  Update detrital DW in water
 !-----------------------------------------------------------------------
-!  total_Zoo_flux_of_DW_in_Detritus_in_lake_water
-   wDZooDetW_tot = - wDConsDetZoo + wDEgesZoo + wDMortZoo
-   wDZooDetW = wDZooDetW_tot * (1.0_rk - self%fDisZooDetW)
-   wDZooDisDetW = wDZooDetW_tot * self%fDisZooDetW
+!  total_Zoo_flux_of_DW_in_Detritus_in_lake_wate
+#ifdef _ORIGINAL_
+   wDZooDetW = - wDConsPOMZoo + wDEgesZoo + wDMortZoo
+   wDZooPOMW = wDZooDetW * (1.0_rk - self%fZooDOMW)
+   wDZooDOMW = wDZooDetW * self%fZooDOMW
+#endif
+   wDZooDetW = wDEgesZoo + wDMortZoo
+   wDZooPOMW = wDZooDetW * (1.0_rk - self%fZooDOMW)- wDConsPOMZoo
+   wDZooDOMW = wDZooDetW * self%fZooDOMW
 !-----------------------------------------------------------------------
 !  Update detrital N in water
 !-----------------------------------------------------------------------
@@ -525,9 +530,14 @@
 !  detrital_N_egestion
    wNEgesZooDet = wNEgesZoo - wNEgesZooNH4
 !  total_Zoo_flux_of_N_in_Detritus_in_lake_water
-   wNZooDetW_tot = - wNConsDetZoo + wNEgesZooDet + wNMortZooDet
-   wNZooDetW = wNZooDetW_tot * (1.0_rk - self%fDisZooDetW)
-   wNZooDisDetW = wNZooDetW_tot * self%fDisZooDetW
+#ifdef _ORIGINAL_
+   wNZooDetW = - wNConsPOMZoo + wNEgesZooDet + wNMortZooDet
+   wNZooPOMW = wNZooDetW * (1.0_rk - self%fZooDOMW)
+   wNZooDOMW = wNZooDetW * self%fZooDOMW
+#endif
+   wNZooDetW = wNEgesZooDet + wNMortZooDet
+   wNZooPOMW = wNZooDetW * (1.0_rk - self%fZooDOMW)- wNConsPOMZoo
+   wNZooDOMW = wNZooDetW * self%fZooDOMW
 !-----------------------------------------------------------------------
 !  Update detrital P in water
 !-----------------------------------------------------------------------
@@ -536,17 +546,22 @@
 !  detrital_P_egestion
    wPEgesZooDet = wPEgesZoo - wPEgesZooPO4
 !  total_Zoo_flux_of_P_in_Detritus_in_lake_water
-   wPZooDetW_tot = - wPConsDetZoo + wPEgesZooDet + wPMortZooDet
-   wPZooDetW = wPZooDetW_tot * (1.0_rk - self%fDisZooDetW)
-   wPZooDisDetW = wPZooDetW_tot * self%fDisZooDetW
+#ifdef _ORIGINAL_
+   wPZooDetW = - wPConsPOMZoo + wPEgesZooDet + wPMortZooDet
+   wPZooPOMW = wPZooDetW * (1.0_rk - self%fZooDOMW)
+   wPZooDOMW = wPZooDetW * self%fZooDOMW
+#endif
+   wPZooDetW = wPEgesZooDet + wPMortZooDet
+   wPZooPOMW = wPZooDetW * (1.0_rk - self%fZooDOMW)- wPConsPOMZoo
+   wPZooDOMW = wPZooDetW * self%fZooDOMW
 !-----------------------------------------------------------------------
 !  Update detrital Si in water
 !-----------------------------------------------------------------------
 !  consumption_of_diatoms
    wSiConsDiatZoo = self%cSiDDiat * wDConsDiatZoo
 !  total_Zoo_flux_of_silica_in_lake_water_detritus
-   wSiZooDetW = wSiConsDiatZoo * (1.0_rk - self%fDisZooDetW)
-   wSiZooDisDetW = wSiConsDiatZoo * self%fDisZooDetW   
+   wSiZooPOMW = wSiConsDiatZoo * (1.0_rk - self%fZooDOMW)
+   wSiZooDOMW = wSiConsDiatZoo * self%fZooDOMW   
 !-----------------------------------------------------------------------
 !  Update diatom state variables
 !-----------------------------------------------------------------------
@@ -587,24 +602,24 @@
    _SET_ODE_(self%id_NH4poolW,      wNZooNH4W)
    _SET_ODE_(self%id_NO3poolW,      wNZooNO3W)
    _SET_ODE_(self%id_PO4poolW,      wPZooPO4W)
-   _SET_ODE_(self%id_DDetpoolW,     wDZooDetW)
-   _SET_ODE_(self%id_NDetpoolW,     wNZooDetW)
-   _SET_ODE_(self%id_PDetpoolW,     wPZooDetW)
-   _SET_ODE_(self%id_SiDetpoolW,    wSiZooDetW)
-   _SET_ODE_(self%id_DDisDetpoolW,  wDZooDisDetW)
-   _SET_ODE_(self%id_NDisDetpoolW,  wNZooDisDetW)
-   _SET_ODE_(self%id_PDisDetpoolW,  wPZooDisDetW)
-   _SET_ODE_(self%id_SiDisDetpoolW, wSiZooDisDetW)
+   _SET_ODE_(self%id_DPOMpoolW,     wDZooPOMW)
+   _SET_ODE_(self%id_NPOMpoolW,     wNZooPOMW)
+   _SET_ODE_(self%id_PPOMpoolW,     wPZooPOMW)
+   _SET_ODE_(self%id_SiPOMpoolW,    wSiZooPOMW)
+   _SET_ODE_(self%id_DDOMpoolW,     wDZooDOMW)
+   _SET_ODE_(self%id_NDOMpoolW,     wNZooDOMW)
+   _SET_ODE_(self%id_PDOMpoolW,     wPZooDOMW)
+   _SET_ODE_(self%id_SiDOMpoolW,    wSiZooDOMW)
 !  update phytoplankton in water
-   _SET_ODE_(self%id_DfoodDiat,  wDZooDiatW)
-   _SET_ODE_(self%id_NfoodDiat,  wNZooDiatW)
-   _SET_ODE_(self%id_PfoodDiat,  wPZooDiatW)
-   _SET_ODE_(self%id_DfoodGren,  wDZooGrenW)
-   _SET_ODE_(self%id_NfoodGren,  wNZooGrenW)
-   _SET_ODE_(self%id_PfoodGren,  wPZooGrenW)
-   _SET_ODE_(self%id_DfoodBlue,  wDZooBlueW)
-   _SET_ODE_(self%id_NfoodBlue,  wNZooBlueW)
-   _SET_ODE_(self%id_PfoodBlue,  wPZooBlueW)
+   _SET_ODE_(self%id_DfoodDiat,     wDZooDiatW)
+   _SET_ODE_(self%id_NfoodDiat,     wNZooDiatW)
+   _SET_ODE_(self%id_PfoodDiat,     wPZooDiatW)
+   _SET_ODE_(self%id_DfoodGren,     wDZooGrenW)
+   _SET_ODE_(self%id_NfoodGren,     wNZooGrenW)
+   _SET_ODE_(self%id_PfoodGren,     wPZooGrenW)
+   _SET_ODE_(self%id_DfoodBlue,     wDZooBlueW)
+   _SET_ODE_(self%id_NfoodBlue,     wNZooBlueW)
+   _SET_ODE_(self%id_PfoodBlue,     wPZooBlueW)
 #ifdef _DEVELOPMENT_
 !  output diagnostic variables for modular fluxes
    _SET_DIAGNOSTIC_(self%id_wDZoo,      wDZoo*secs_pr_day)
@@ -612,10 +627,10 @@
    _SET_DIAGNOSTIC_(self%id_wPZoo,      wPZoo*secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_wNZooNO3W,  wNZooNO3W*secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_wPZooPO4W,  wPZooPO4W*secs_pr_day)
-   _SET_DIAGNOSTIC_(self%id_wDZooDetW,  wDZooDetW*secs_pr_day)
-   _SET_DIAGNOSTIC_(self%id_wNZooDetW,  wNZooDetW*secs_pr_day)
-   _SET_DIAGNOSTIC_(self%id_wPZooDetW,  wPZooDetW*secs_pr_day)
-   _SET_DIAGNOSTIC_(self%id_wSiZooDetW, wSiZooDetW*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_wDZooPOMW,  wDZooPOMW*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_wNZooPOMW,  wNZooPOMW*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_wPZooPOMW,  wPZooPOMW*secs_pr_day)
+   _SET_DIAGNOSTIC_(self%id_wSiZooPOMW, wSiZooPOMW*secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_wDZooDiatW, wDZooDiatW*secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_wNZooDiatW, wNZooDiatW*secs_pr_day)
    _SET_DIAGNOSTIC_(self%id_wPZooDiatW, wPZooDiatW*secs_pr_day)
