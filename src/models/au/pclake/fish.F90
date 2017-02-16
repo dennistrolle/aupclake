@@ -37,14 +37,14 @@
    type (type_diagnostic_variable_id)       :: id_wDFiJv,id_wPFiJv,id_wNFiJv
    type (type_diagnostic_variable_id)       :: id_wDFiAd ,id_wPFiAd,id_wNFiAd
    type (type_diagnostic_variable_id)       :: id_wDPisc ,id_wPFishPO4W,id_wNFishNH4W
-   type (type_diagnostic_variable_id)       :: id_wDFishDetW,id_wNFishDetW,id_wPFishDetW
+   type (type_diagnostic_variable_id)       :: id_wDFishPOMW,id_wNFishPOMW,id_wPFishPOMW
    type (type_diagnostic_variable_id)       :: id_wDFishZoo,id_wNFishZoo,id_wPFishZoo
 #endif
 !  state dependencies identifiers
-   type (type_state_variable_id)            :: id_DDetpoolW,id_PDetpoolW,id_NDetpoolW
+   type (type_state_variable_id)            :: id_DPOMpoolW,id_PPOMpoolW,id_NPOMpoolW
    type (type_state_variable_id)            :: id_NH4poolW,id_PO4poolW
    type (type_state_variable_id)            :: id_DFoodZoo,id_NFoodZoo,id_PFoodZoo
-   type (type_state_variable_id)            :: id_DDisDetpoolW,id_PDisDetpoolW,id_NDisDetpoolW
+   type (type_state_variable_id)            :: id_DDOMpoolW,id_PDOMpoolW,id_NDOMpoolW
 !  environmental dependencies
    type (type_dependency_id)                :: id_uTm ,id_dz
    type (type_horizontal_dependency_id)     :: id_sDepthW
@@ -73,7 +73,7 @@
 !  minimum state variable values
    real(rk)   :: cDFiJvMin,cDFiAdMin,cDPiscMin
 !  dissolved organic fraction from fish
-   real(rk)   :: fDisFisDetW
+   real(rk)   :: fFisDOMW
 
    contains
 
@@ -166,7 +166,7 @@
    call self%get_parameter(self%cDFiJvMin,       'cDFiJvMin',       'gDW/m3',   'minimum zooplanktivorous  fish biomass in system',                               default=0.0001_rk)
    call self%get_parameter(self%cDFiAdMin,       'cDFiAdMin',       'gDW/m3',   'minimum benthivorous fish biomass in system',                                    default=0.0001_rk)
    call self%get_parameter(self%cDPiscMin,       'cDPiscMin',       'gDW/m3',   'minimum piscivorous fish biomass in system',                                     default=0.0001_rk)
-   call self%get_parameter(self%fDisFisDetW,     'fDisFisDetW',     '[-]',      'dissolved organics fraction from fish',                                          default=0.5_rk)
+   call self%get_parameter(self%fFisDOMW,     'fFisDOMW',     '[-]',      'dissolved organics fraction from fish',                                          default=0.5_rk)
 !  Register local state variable
 !  zooplanktivorous fish, transportation is turned off
    call self%register_state_variable(self%id_sDFiJv,'sDFiJv','g m-3','zooplanktivorous fish dry weight',     &
@@ -217,9 +217,9 @@
    call self%register_diagnostic_variable(self%id_wDPisc,     'wDPisc',     'g m-3 s-1', 'fish_DPisc_change',                   output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_wNFishNH4W, 'wNFishNH4W', 'g m-3 s-1', 'fish_NH4W_change',                    output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_wPFishPO4W, 'wPFishPO4W', 'g m-3 s-1', 'fish_PO4W_change',                    output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wDFishDetW, 'wDFishDetW', 'g m-3 s-1', 'fish_DDetW_change',                   output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wNFishDetW, 'wNFishDetW', 'g m-3 s-1', 'fish_NDetW_change',                   output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_wPFishDetW, 'wPFishDetW', 'g m-3 s-1', 'fish_PDetW_change',                   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wDFishPOMW, 'wDFishPOMW', 'g m-3 s-1', 'fish_DPOMW_change',                   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wNFishPOMW, 'wNFishPOMW', 'g m-3 s-1', 'fish_NPOMW_change',                   output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_wPFishPOMW, 'wPFishPOMW', 'g m-3 s-1', 'fish_PPOMW_change',                   output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_wDFishZoo,  'wDFishZoo',  'g m-3 s-1', 'fish_DZoo_change',                    output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_wNFishZoo,  'wNFishZoo',  'g m-3 s-1', 'fish_NZoo_change',                    output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_wPFishZoo,  'wPFishZoo',  'g m-3 s-1', 'fish_PZoo_change',                    output=output_instantaneous)
@@ -232,17 +232,17 @@
    call self%add_to_aggregate_variable(standard_variables%total_phosphorus,self%id_sPFiAd)
    call self%add_to_aggregate_variable(standard_variables%total_phosphorus,self%id_aPPisc)
 !  register state variables dependencies
-   call self%register_state_dependency(self%id_DDetpoolW,    'detritus_DW_pool_water',     'g m-3', 'detritus DW pool in water')
-   call self%register_state_dependency(self%id_NDetpoolW,    'detritus_N_pool_water',      'g m-3', 'detritus N pool in water')
-   call self%register_state_dependency(self%id_PDetpoolW,    'detritus_P_pool_water',      'g m-3', 'detritus P pool in water')
+   call self%register_state_dependency(self%id_DPOMpoolW,    'POM_DW_pool_water',     'g m-3', 'POM DW pool in water')
+   call self%register_state_dependency(self%id_NPOMpoolW,    'POM_N_pool_water',      'g m-3', 'POM N pool in water')
+   call self%register_state_dependency(self%id_PPOMpoolW,    'POM_P_pool_water',      'g m-3', 'POM P pool in water')
    call self%register_state_dependency(self%id_NH4poolW,     'NH4_pool_water',             'g m-3', 'NH4 pool in water')
    call self%register_state_dependency(self%id_PO4poolW,     'PO4_pool_water',             'g m-3', 'PO4 pool in water')
    call self%register_state_dependency(self%id_DFoodZoo,     'zooplankton_D_Food',         'g m-3', 'zooplankton D Food')
    call self%register_state_dependency(self%id_NFoodZoo,     'zooplankton_N_Food',         'g m-3', 'zooplankton N Food')
    call self%register_state_dependency(self%id_PFoodZoo,     'zooplankton_P_Food',         'g m-3', 'zooplankton P Food')
-   call self%register_state_dependency(self%id_DDisDetpoolW, 'dissolved_detritus_DW_water','g m-3', 'dissolved detritus DW in water')
-   call self%register_state_dependency(self%id_NDisDetpoolW, 'dissolved_detritus_N_water', 'g m-3', 'dissolved detritus N in water')
-   call self%register_state_dependency(self%id_PDisDetpoolW, 'dissolved_detritus_P_water', 'g m-3', 'dissolved detritus P in water')
+   call self%register_state_dependency(self%id_DDOMpoolW, 'DOM_DW_pool_water','g m-3', 'DOM DW in water')
+   call self%register_state_dependency(self%id_NDOMpoolW, 'DOM_N_pool_water', 'g m-3', 'DOM N in water')
+   call self%register_state_dependency(self%id_PDOMpoolW, 'DOM_P_pool_water', 'g m-3', 'DOM P in water')
    
 !  register environmental dependencies
    call self%register_dependency(self%id_uTm,    standard_variables%temperature)
@@ -353,21 +353,21 @@
    real(rk)     :: tPMortFishPO4,tPEgesPiscPO4,tPMortPiscPO4,tPMortPiscBot
 !  variables for exchange of Detritus DW
 !  PCLake_Osis, /m^2
-   real(rk)     :: wDFishDetW,tDEgesFiJv, tDMortFishDet
+   real(rk)     :: wDFishPOMW,tDEgesFiJv, tDMortFishDet
    real(rk)     :: tDMortFish,tDMortFishBot,tDEgesPisc,tDMortPiscDet,tDMortPiscBot
 !  variables for exchange of Detritus N
 !  PCLake_Osis, /m^2
-   real(rk)     :: wNFishDetW,tNEgesFiJvDet,tNMortFishDet
+   real(rk)     :: wNFishPOMW,tNEgesFiJvDet,tNMortFishDet
    real(rk)     :: tNEgesPiscDet,tNMortPiscDet
 !  variables for exchange of detritus P
 !  PCLake_Osis, /m^2
-   real(rk)     :: wPFishDetW,tPEgesFiJvDet,tPMortFishDet
+   real(rk)     :: wPFishPOMW,tPEgesFiJvDet,tPMortFishDet
    real(rk)     :: tPEgesPiscDet,tPMortPiscDet
 !  variables for exchange of detritus Si
    real(rk)     :: wSiConsDiatZoo
 !  variables for exchange of dissolved organics
-   real(rk)     :: wDFishDetW_tot,wNFishDetW_tot,wPFishDetW_tot 
-   real(rk)     :: wDFishDisDetW,wNFishDisDetW,wPFishDisDetW
+   real(rk)     :: wDFishDetW,wNFishDetW,wPFishDetW 
+   real(rk)     :: wDFishDOMW,wNFishDOMW,wPFishDOMW
 !  variables for exchange of diatoms
    real(rk)     :: wDFishDiatW,wNFishDiatW,wPFishDiatW
 !  variables for exchange of green algae
@@ -855,9 +855,9 @@
 !  part_of_died_Pisc_DW_becoming_detritus
    tDMortPiscDet = tDMortPisc - tDMortPiscBot
 !  total_fish_flux_of_DW_in_Detritus_in_lake_water
-   wDFishDetW_tot = (tDEgesFiJv + tDMortFishDet + tDEgesPisc + tDMortPiscDet)/sDepthW
-   wDFishDetW  = wDFishDetW_tot * (1.0_rk - self%fDisFisDetW)
-   wDFishDisDetW = wDFishDetW_tot * self%fDisFisDetW
+   wDFishDetW = (tDEgesFiJv + tDMortFishDet + tDEgesPisc + tDMortPiscDet)/sDepthW
+   wDFishPOMW  = wDFishDetW * (1.0_rk - self%fFisDOMW)
+   wDFishDOMW = wDFishDetW * self%fFisDOMW
 !-----------------------------------------------------------------------
 !  Update detrital N in water
 !-----------------------------------------------------------------------
@@ -870,9 +870,9 @@
 !  detrital_N_egestion_of_young_fish
    tNEgesFiJvDet = tNEgesFiJv - tNEgesFiJvNH4
 !  total_fish_flux_of_N_in_Detritus_in_lake_water
-   wNFishDetW_tot = (tNEgesFiJvDet + tNMortFishDet + tNEgesPiscDet + tNMortPiscDet)/sDepthW
-   wNFishDetW  = wNFishDetW_tot * (1.0_rk - self%fDisFisDetW)
-   wNFishDisDetW = wNFishDetW_tot * self%fDisFisDetW
+   wNFishDetW = (tNEgesFiJvDet + tNMortFishDet + tNEgesPiscDet + tNMortPiscDet)/sDepthW
+   wNFishPOMW  = wNFishDetW * (1.0_rk - self%fFisDOMW)
+   wNFishDOMW = wNFishDetW * self%fFisDOMW
 !-----------------------------------------------------------------------
 !  Update detrital P in water
 !-----------------------------------------------------------------------
@@ -885,9 +885,9 @@
 !  detrital_P_egestion_of_young_fish
    tPEgesFiJvDet = tPEgesFiJv - tPEgesFiJvPO4
 !  total_fish_flux_of_P_in_Detritus_in_lake_water
-   wPFishDetW_tot = (tPEgesFiJvDet + tPMortFishDet + tPEgesPiscDet + tPMortPiscDet)/sDepthW
-   wPFishDetW  = wPFishDetW_tot * (1.0_rk - self%fDisFisDetW)
-   wPFishDisDetW = wPFishDetW_tot * self%fDisFisDetW
+   wPFishDetW = (tPEgesFiJvDet + tPMortFishDet + tPEgesPiscDet + tPMortPiscDet)/sDepthW
+   wPFishPOMW  = wPFishDetW * (1.0_rk - self%fFisDOMW)
+   wPFishDOMW = wPFishDetW * self%fFisDOMW
 !-----------------------------------------------------------------------
 !  Update local state variables
 !-----------------------------------------------------------------------
@@ -904,15 +904,15 @@
 !  update abiotic variables in water
    _SET_ODE_(self%id_NH4poolW,  wNFishNH4W)
    _SET_ODE_(self%id_PO4poolW,  wPFishPO4W)
-   _SET_ODE_(self%id_DDetpoolW, wDFishDetW)
-   _SET_ODE_(self%id_NDetpoolW, wNFishDetW)
-   _SET_ODE_(self%id_PDetpoolW, wPFishDetW)
+   _SET_ODE_(self%id_DPOMpoolW, wDFishPOMW)
+   _SET_ODE_(self%id_NPOMpoolW, wNFishPOMW)
+   _SET_ODE_(self%id_PPOMpoolW, wPFishPOMW)
    _SET_ODE_(self%id_DFoodZoo,  -tDConsFiJv/sDepthW)
    _SET_ODE_(self%id_NFoodZoo,  -tNConsFiJv/sDepthW)
    _SET_ODE_(self%id_PFoodZoo,  -tPConsFiJv/sDepthW)
-   _SET_ODE_(self%id_DDisDetpoolW, wDFishDisDetW)
-   _SET_ODE_(self%id_NDisDetpoolW, wNFishDisDetW)
-   _SET_ODE_(self%id_PDisDetpoolW, wPFishDisDetW)
+   _SET_ODE_(self%id_DDOMpoolW, wDFishDOMW)
+   _SET_ODE_(self%id_NDOMpoolW, wNFishDOMW)
+   _SET_ODE_(self%id_PDOMpoolW, wPFishDOMW)
 !-----------------------------------------------------------------------
 !  output diagnostic variables for external links
 !-----------------------------------------------------------------------
@@ -937,18 +937,18 @@
       _SET_DIAGNOSTIC_(self%id_wNFiAd,     wNFiAd*86400.0_rk)
       _SET_DIAGNOSTIC_(self%id_wNFishNH4W, wNFishNH4W*86400.0_rk)
       _SET_DIAGNOSTIC_(self%id_wPFishPO4W, tPFishPO4W/sDepthW*86400.0_rk)
-      _SET_DIAGNOSTIC_(self%id_wDFishDetW, wDFishDetW*86400.0_rk)
-      _SET_DIAGNOSTIC_(self%id_wNFishDetW, wNFishDetW*86400.0_rk)
-      _SET_DIAGNOSTIC_(self%id_wPFishDetW, wPFishDetW*86400.0_rk)
+      _SET_DIAGNOSTIC_(self%id_wDFishPOMW, wDFishPOMW*86400.0_rk)
+      _SET_DIAGNOSTIC_(self%id_wNFishPOMW, wNFishPOMW*86400.0_rk)
+      _SET_DIAGNOSTIC_(self%id_wPFishPOMW, wPFishPOMW*86400.0_rk)
    else
       _SET_DIAGNOSTIC_(self%id_wDFiAd,     0.0_rk)
       _SET_DIAGNOSTIC_(self%id_wPFiAd,     0.0_rk)
       _SET_DIAGNOSTIC_(self%id_wNFiAd,     0.0_rk)
       _SET_DIAGNOSTIC_(self%id_wNFishNH4W, 0.0_rk)
       _SET_DIAGNOSTIC_(self%id_wPFishPO4W, 0.0_rk)
-      _SET_DIAGNOSTIC_(self%id_wDFishDetW, 0.0_rk)
-      _SET_DIAGNOSTIC_(self%id_wNFishDetW, 0.0_rk)
-      _SET_DIAGNOSTIC_(self%id_wPFishDetW, 0.0_rk)
+      _SET_DIAGNOSTIC_(self%id_wDFishPOMW, 0.0_rk)
+      _SET_DIAGNOSTIC_(self%id_wNFishPOMW, 0.0_rk)
+      _SET_DIAGNOSTIC_(self%id_wPFishPOMW, 0.0_rk)
    endif
    n=n+1
 #endif
