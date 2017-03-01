@@ -449,9 +449,8 @@
 !  Oxygen conditions in sediment
 !-----------------------------------------------------------------------
 !  sediment_oxygen_demand
-#ifdef _ORIGINAL_
-   tSOD=(molO2molC*self%cCPerDW*(1.0_rk-self%fRefrPOMS)*tDMinDetS+self%O2PerNH4*molO2molN*self%kNitrS*uFunTmNitr*sNH4S)/self%cDepthS
-#endif
+!   The original equation
+!   tSOD=(molO2molC*self%cCPerDW*(1.0_rk-self%fRefrDetS)*tDMinDetS+self%O2PerNH4*molO2molN*self%kNitrS*uFunTmNitr*sNH4S)/self%cDepthS
    tSOD=(molO2molC*self%cCPerDW*((1.0_rk-self%fRefrPOMS)*tDMinPOMS+tDMinDOMS)+self%O2PerNH4*molO2molN*self%kNitrS*uFunTmNitr*sNH4S)/self%cDepthS
 !  oxygen_penetration_depth
    aDepthOxySed=(((2.0_rk * sO2W * akO2DifCor / tSOD) )** (0.5_rk))
@@ -462,18 +461,16 @@
 !  aerobic_mineralisation
    tDMinOxyDOMS=afOxySed*tDMinDOMS
 !  sediment_oxygen_demand
-#ifdef _ORIGINAL_
-   tO2MinDetS=molO2molC*self%cCPerDW*tDMinOxyDetS
-#endif
+!  The original equation
+!   tO2MinDetS=molO2molC*self%cCPerDW*tDMinOxyDetS
    tO2MinDetS=molO2molC*self%cCPerDW*(tDMinOxyDOMS+tDMinOxyDOMS)
 !-----------------------------------------------------------------------
 !  denitrification flux
 !-----------------------------------------------------------------------
 !  mineralisation_flux_by_denitrification
-#ifdef _ORIGINAL_
-   tDDenitS=oNO3S*oNO3S/(self%hNO3Denit*self%hNO3Denit+oNO3S*oNO3S)*(1.0-afOxySed)*(1.0_rk-self%fRefrPOMS)*tDMinDOMS
-#endif
-   tDDenitS=oNO3S*oNO3S/(self%hNO3Denit*self%hNO3Denit+oNO3S*oNO3S)*(1.0-afOxySed)*tDMinDOMS
+!  The original equation_
+!   tDDenitS=oNO3S*oNO3S/(self%hNO3Denit*self%hNO3Denit+oNO3S*oNO3S)*(1.0-afOxySed)*(1.0_rk-self%fRefrDetS)*tDMinDetS
+   tDDenitS=oNO3S*oNO3S/(self%hNO3Denit*self%hNO3Denit+oNO3S*oNO3S)*(1.0-afOxySed)*(tDMinDOMS+(1.0_rk-self%fRefrPOMS)*tDMinPOMS)
 !  Denitrification_flux
    tNDenitS=self%NO3PerC*molNmolC*self%cCPerDW*tDDenitS
 !-----------------------------------------------------------------------

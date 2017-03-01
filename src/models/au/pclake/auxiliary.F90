@@ -37,7 +37,8 @@
    type (type_bottom_state_variable_id)     :: id_WSDDiat,id_WSNDiat,id_WSPDiat  !,id_WSSiDiat
    type (type_bottom_state_variable_id)     :: id_WSDGren,id_WSNGren,id_WSPGren
 !  dependencies to foodweb_wat state variables(zooplankton only created for transportation purpose)
-   type (type_state_variable_id)            :: id_TurbFish,id_DTranZoo,id_NTranZoo,id_PTranZoo
+   type (type_state_variable_id)            :: id_DTranZoo,id_NTranZoo,id_PTranZoo
+   type (type_bottom_state_variable_id)     :: id_TurbFish
 !  dependencies to vegetation state variables
    type (type_bottom_state_variable_id)     :: id_DragVeg
 !  environmental dependencies
@@ -446,14 +447,14 @@
 !  vegatation influence on vegetation
    _GET_HORIZONTAL_(self%id_DragVeg,sDVeg)
 !  fish predation influence on resuspension
-   _GET_(self%id_TurbFish,sDFiAd)
+   _GET_HORIZONTAL_(self%id_TurbFish,sDFiAd)
 !  retrieve environmental dependencies
    _GET_(self%id_uTm,uTm)
    _GET_(self%id_dz,dz)
    _GET_HORIZONTAL_(self%id_shear,shear)
    _GET_HORIZONTAL_(self%id_sDepthW,sDepthW)
 !  fish biomass converted to g/m^2
-   sDFiAd=sDFiAd*sDepthW
+!   sDFiAd=sDFiAd*sDepthW
 !  retrieve diagnostic dependency
    _GET_HORIZONTAL_(self%id_tDAbioPOMS,tDAbioPOMS)
    _GET_HORIZONTAL_(self%id_tDPrimPOMS,tDPrimPOMS)
