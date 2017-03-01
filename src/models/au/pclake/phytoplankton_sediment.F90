@@ -38,7 +38,7 @@
    type (type_horizontal_diagnostic_variable_id)       :: id_tDPrimBlueS,id_tNPrimBlueS,id_tPPrimBlueS
    type (type_horizontal_diagnostic_variable_id)       :: id_tPPrimPO4S,id_tNPrimNO3S,id_tNPrimNH4S
    type (type_horizontal_diagnostic_variable_id)       :: id_tNPrimPOMS,id_tPPrimPOMS,id_tSiPrimPOMS,id_tSiExcrDiatS
-!  detritus fluxes will be named differently due to they are used by
+!  organic fluxes will be named differently due to they are used by
 !  external dependencies
    type (type_horizontal_diagnostic_variable_id)       :: id_tDPrimPOMSflux
 #endif
@@ -62,7 +62,7 @@
    real(rk)   :: fDissMortPhyt,cSiDDiat
 !  minimum state variable values
    real(rk)   :: cDBlueMinS,cDGrenMinS,cDDiatMinS
-!  fraction of dissolved detritus from phytoplankton
+!  fraction of dissolved organics from phytoplankton
    real(rk)   :: fPrimDOMS
 
 
@@ -159,7 +159,7 @@
    call self%register_diagnostic_variable(self%id_rPDPhytS,  'rPDPhytS',  '[-]',      'rPDPhytS',  output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_rNDPhytS,  'rNDPhytS',  '[-]',      'rNDPhytS',  output=output_instantaneous)
 !  register diagnostic variable for external usage
-   call self%register_diagnostic_variable(self%id_tDPrimPOMS,'tDPrimPOMS','g m-2 s-1', 'detritus change in phytoplankton sediment',  output=output_none)
+   call self%register_diagnostic_variable(self%id_tDPrimPOMS,'tDPrimPOMS','g m-2 s-1', 'partical organics change in phytoplankton sediment',  output=output_none)
 #ifdef _DEVELOPMENT_
 !  register diagnostic variables for modular fluxes
 !  fluxes for local state variables
@@ -262,8 +262,8 @@
    real(rk)   :: tNPrimNO3S
    real(rk)   :: tPPrimPO4S,tPExcrPhytS,tPMortPhytPO4S,tPMortPhytS
    real(rk)   :: tDPrimPOMS,tDMortPhytS
-   real(rk)   :: tNPrimPOMS,tNMortPhytDetS
-   real(rk)   :: tPPrimPOMS,tPMortPhytDetS
+   real(rk)   :: tNPrimPOMS,tNMortPhytTOMS
+   real(rk)   :: tPPrimPOMS,tPMortPhytTOMS
    real(rk)   :: tSiPrimPOMS,tSiMortDiatS
    real(rk)   :: tSiExcrDiatS,tSiPrimDOMS
    real(rk)   :: tDPrimDOMS,tNPrimDOMS,tPPrimDOMS
@@ -452,35 +452,35 @@
 !  Pore_water_P
    tPPrimPO4S = tPExcrPhytS + tPMortPhytPO4S
 !-----------------------------------------------------------------------
-!  sDPOMS exchange
+!  sediment organics exchange, DW
 !-----------------------------------------------------------------------
 !  mortality_of_algae_on_bottom
    tDMortPhytS = tDMortDiatS + tDMortGrenS + tDMortBlueS
-!  Flux_to_sediment_detritus
+!  Flux_to_sediment_organics
    tDPrimPOMS = tDMortPhytS * (1.0_rk - self%fPrimDOMS)
    tDPrimDOMS = tDMortPhytS * self%fPrimDOMS
 !-----------------------------------------------------------------------
-!  sNDetS exchange
+!  sediment organics exchange, N
 !-----------------------------------------------------------------------
-!  detrital_N_flux_from_died_Algae
-   tNMortPhytDetS = tNMortPhytS - tNMortPhytNH4S
-!  Flux_to_sediment_detritus
-   tNPrimPOMS = tNMortPhytDetS * (1.0_rk - self%fPrimDOMS)
-   tNPrimDOMS = tNMortPhytDetS * self%fPrimDOMS
+!  organic_N_flux_from_died_Algae
+   tNMortPhytTOMS = tNMortPhytS - tNMortPhytNH4S
+!  Flux_to_sediment_organics
+   tNPrimPOMS = tNMortPhytTOMS * (1.0_rk - self%fPrimDOMS)
+   tNPrimDOMS = tNMortPhytTOMS * self%fPrimDOMS
 !-----------------------------------------------------------------------
-!  sPDetS exchange
+!  sediment organics exchange, P
 !-----------------------------------------------------------------------
-!  detrital_P_flux_from_died_Algae
-   tPMortPhytDetS = tPMortPhytS - tPMortPhytPO4S
-!  Flux_to_sediment_detritus
-   tPPrimPOMS = tPMortPhytDetS * (1.0_rk - self%fPrimDOMS)
-   tPPrimDOMS = tPMortPhytDetS * self%fPrimDOMS
+!  organic_P_flux_from_died_Algae
+   tPMortPhytTOMS = tPMortPhytS - tPMortPhytPO4S
+!  Flux_to_sediment_organics
+   tPPrimPOMS = tPMortPhytTOMS * (1.0_rk - self%fPrimDOMS)
+   tPPrimDOMS = tPMortPhytTOMS * self%fPrimDOMS
 !-----------------------------------------------------------------------
-!  sSiDetS exchange
+!  sediment organics exchange, Si
 !-----------------------------------------------------------------------
 !  mortality_of_bottom_Algae
    tSiMortDiatS = self%cSiDDiat * tDMortDiatS
-!  Sediment_detritus
+!  Sediment_organics
    tSiPrimPOMS = tSiMortDiatS* (1.0_rk - self%fPrimDOMS)
    tSiPrimDOMS = tSiMortDiatS * self%fPrimDOMS
 !-----------------------------------------------------------------------

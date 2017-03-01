@@ -72,10 +72,10 @@
    real(rk)    :: cPDVeg0,cNDVeg0
    real(rk)    :: fSedUptVegMax,fSedUptVegCoef,fSedUptVegExp,cAffNUptVeg,cVNUptMaxVeg
    integer     :: UseEmpUpt
-   real(rk)    :: cVPUptMaxVeg,cAffPUptVeg,fDissMortVeg,fDetWMortVeg
+   real(rk)    :: cVPUptMaxVeg,cAffPUptVeg,fDissMortVeg
 !  paremters for sediment properties(pore water concentration)
    real(rk)   :: cDepthS,bPorS,cCPerDW,hO2BOD
-   real(rk)   :: cExtSpVeg
+   real(rk)   :: cExtSpVeg,fTOMWMortVeg
 !  plant height
    real(rk)   :: cHeightVeg
 !  minimun state variable vaules
@@ -167,7 +167,7 @@
    call self%get_parameter(self%cVPUptMaxVeg,  'cVPUptMaxVeg',   'mgP/mgDW/d',          'maximum P uptake capacity of vegetation',                                                                 default=0.01_rk,  scale_factor=1.0_rk/secs_pr_day)
    call self%get_parameter(self%fDissMortVeg,  'fDissMortVeg',   '[-]',                 'fraction dissolved nutrients from died plants',                                                           default=0.25_rk)
    call self%get_parameter(self%cCPerDW,       'cCPerDW',        'gC/gDW',              'C content of organic matter',                                                                              default=0.4_rk)
-   call self%get_parameter(self%fDetWMortVeg,  'fDetWMortVeg',   '[-]',                 'fraction of shoot mortality becoming water detritus',                                                     default=0.1_rk)
+   call self%get_parameter(self%fTOMWMortVeg,  'fTOMWMortVeg',   '[-]',                 'fraction of shoot mortality becoming water organics',                                                     default=0.1_rk)
    call self%get_parameter(self%hO2BOD,        'hO2BOD',         'mgO2/l',              'half-sat. oxygen conc. for BOD',                                                                          default=1.0_rk)
    call self%get_parameter(self%cHeightVeg,    'cHeightVeg',     'm',                   'vegetation height',                                                                                       default=1.0_rk)
    call self%get_parameter(self%cExtSpVeg,     'cExtSpVeg',      'm2/gDW',              'specific extinction',                                                                                     default=0.01_rk)
@@ -328,15 +328,15 @@
 !  O2W
    real(rk)   :: tO2BedW,tO2ProdVegW,tO2ProdVeg,tO2ProdVegS
    real(rk)   :: tO2RespVegS,tO2RespVegW,tO2UptNO3VegW
-!  Detritus in water,DW,Nitrogen,phosphorus
-   real(rk)   :: wDBedDetW,tDMortVegW
-   real(rk)   :: wNBedDetW,tNMortVegDetW,tNMortVegDet
-   real(rk)   :: wPBedDetW,tPMortVegDetW,tPMortVegDet
-!  Detritus in sediment,DW,Nitrogen,phosphorus
+!  Orgnics in water,DW,Nitrogen,phosphorus
+   real(rk)   :: wDBedTOMW,tDMortVegW
+   real(rk)   :: wNBedTOMW,tNMortVegTOMW,tNMortVegTOM
+   real(rk)   :: wPBedTOMW,tPMortVegTOMW,tPMortVegTOM
+!  Organics in sediment,DW,Nitrogen,phosphorus
    real(rk)   :: tDBedPOMS,tDMortVegS
-   real(rk)   :: tNBedPOMS,tNMortVegS,tNMortVegDetS
-   real(rk)   :: tPBedPOMS,tPMortVegS,tPMortVegDetS
-!  Dissolved detritus in sediment
+   real(rk)   :: tNBedPOMS,tNMortVegS,tNMortVegTOMS
+   real(rk)   :: tPBedPOMS,tPMortVegS,tPMortVegTOMS
+!  Dissolved organics in sediment
    real(rk)   :: tDBedDOMS,tNBedDOMS,tPBedDOMS
    real(rk)   :: wDBedDOMW,wNBedDOMW,wPBedDOMW
    real(rk)   :: wDBedPOMW,wNBedPOMW,wPBedPOMW
@@ -751,48 +751,48 @@
 !  total_water_O2_flux_in_vegetation_module
    tO2BedW = tO2ProdVegW - tO2RespVegW + tO2UptNO3VegW
 !-----------------------------------------------------------------------
-!  Update detritus  in water, DW, N and P
+!  Update organics  in water, DW, N and P
 !-----------------------------------------------------------------------
-!  mortality_flux_becoming_water_detritus
-   tDMortVegW = self%fDetWMortVeg * (1.0_rk - bfRootVeg) * tDMortVeg
-!  total_DW_flux_from_Vegetation_module_to_water_detritus
+!  mortality_flux_becoming_water_organics
+   tDMortVegW = self%fTOMWMortVeg * (1.0_rk - bfRootVeg) * tDMortVeg
+!  total_DW_flux_from_Vegetation_module_to_water_organics
    wDBedPOMW = tDMortVegW
-   wDBedPOMW = wDBedDetW * (1.0_rk - self%fVegDOMW)
-   wDBedDOMW = wDBedDetW * self%fVegDOMW
-!  mortality_flux_of_vegetation_becoming_detritus_N
-   tNMortVegDet = tNMortVeg - tNMortVegNH4
-!  mortality_flux_of_vegetation_becoming_detritus_N_in_water
-   tNMortVegDetW = self%fDetWMortVeg * (1.0_rk - bfRootVeg) * tNMortVegDet
-!  total_N_flux_from_Vegetation_module_to_water_detritus
-   wNBedDetW = tNMortVegDetW
-   wNBedPOMW = wNBedDetW * (1.0_rk - self%fVegDOMW)
-   wNBedDOMW = wNBedDetW * self%fVegDOMW
-!  mortality_flux_of_vegetation_becoming_detritus_P
-   tPMortVegDet = tPMortVeg - tPMortVegPO4
-!  mortality_flux_of_vegetation_becoming_detritus_P_in_water
-   tPMortVegDetW = self%fDetWMortVeg * (1.0_rk - bfRootVeg) * tPMortVegDet
-!  total_P_flux_from_Vegetation_module_to_water_detritus
-   wPBedDetW = tPMortVegDetW
-   wPBedPOMW = wPBedDetW * (1.0_rk - self%fVegDOMW)
-   wPBedDOMW = wPBedDetW * self%fVegDOMW
+   wDBedPOMW = wDBedTOMW * (1.0_rk - self%fVegDOMW)
+   wDBedDOMW = wDBedTOMW * self%fVegDOMW
+!  mortality_flux_of_vegetation_becoming_organic_N
+   tNMortVegTOM = tNMortVeg - tNMortVegNH4
+!  mortality_flux_of_vegetation_becoming_organic_N_in_water
+   tNMortVegTOMW = self%fTOMWMortVeg * (1.0_rk - bfRootVeg) * tNMortVegTOM
+!  total_N_flux_from_Vegetation_module_to_water_organics
+   wNBedTOMW = tNMortVegTOMW
+   wNBedPOMW = wNBedTOMW * (1.0_rk - self%fVegDOMW)
+   wNBedDOMW = wNBedTOMW * self%fVegDOMW
+!  mortality_flux_of_vegetation_becoming_organics_P
+   tPMortVegTOM = tPMortVeg - tPMortVegPO4
+!  mortality_flux_of_vegetation_becoming_organic_P_in_water
+   tPMortVegTOMW = self%fTOMWMortVeg * (1.0_rk - bfRootVeg) * tPMortVegTOM
+!  total_P_flux_from_Vegetation_module_to_water_organics
+   wPBedTOMW = tPMortVegTOMW
+   wPBedPOMW = wPBedTOMW * (1.0_rk - self%fVegDOMW)
+   wPBedDOMW = wPBedTOMW * self%fVegDOMW
 !---------------------------------------------------------------------------
-!  Update detritus  in sediment, DW, N and P
+!  Update organics  in sediment, DW, N and P
 !---------------------------------------------------------------------------
-!  mortality_flux_becoming_sediment_detritus
+!  mortality_flux_becoming_sediment_organics
    tDMortVegS = tDMortVeg - tDMortVegW
-!  total_DW_flux_from_Vegetation_module_to_sediment_detritus
+!  total_DW_flux_from_Vegetation_module_to_sediment_organics
    tDBedPOMS = tDMortVegS * (1.0_rk - self%fVegDOMS)
    tDBedDOMS = tDMortVegS * self%fVegDOMS
-!  mortality_flux_of_vegetation_becoming_detritus_N_in_sediment
-   tNMortVegDetS = tNMortVegDet - tNMortVegDetW
-!  total_N_flux_from_Vegetation_module_to_sediment_detritus
-   tNBedPOMS = tNMortVegDetS* (1.0_rk - self%fVegDOMS)
-   tNBedDOMS = tNMortVegDetS * self%fVegDOMS
-!  mortality_flux_of_vegetation_becoming_detritus_P_in_sediment
-   tPMortVegDetS = tPMortVegDet - tPMortVegDetW
-!  total_P_flux_from_Vegetation_module_to_sediment_detritus
-   tPBedPOMS = tPMortVegDetS * (1.0_rk - self%fVegDOMS)
-   tPBedDOMS = tPMortVegDetS * self%fVegDOMS
+!  mortality_flux_of_vegetation_becoming_organic_N_in_sediment
+   tNMortVegTOMS = tNMortVegTOM - tNMortVegTOMW
+!  total_N_flux_from_Vegetation_module_to_sediment_organics
+   tNBedPOMS = tNMortVegTOMS* (1.0_rk - self%fVegDOMS)
+   tNBedDOMS = tNMortVegTOMS * self%fVegDOMS
+!  mortality_flux_of_vegetation_becoming_organic_P_in_sediment
+   tPMortVegTOMS = tPMortVegTOM - tPMortVegTOMW
+!  total_P_flux_from_Vegetation_module_to_sediment_organics
+   tPBedPOMS = tPMortVegTOMS * (1.0_rk - self%fVegDOMS)
+   tPBedDOMS = tPMortVegTOMS * self%fVegDOMS
 !-----------------------------------------------------------------------
 !  Update local state variables
 !-----------------------------------------------------------------------

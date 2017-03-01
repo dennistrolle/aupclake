@@ -357,18 +357,18 @@
    real(rk)     :: tPEgesFiJvPO4,tPFishPO4W
    real(rk)     :: tPEgesFiJv,tPMortFish,tPMortFishBot
    real(rk)     :: tPMortFishPO4,tPEgesPiscPO4,tPMortPiscPO4,tPMortPiscBot
-!  variables for exchange of Detritus DW
+!  variables for exchange of organic matter DW
 !  PCLake_Osis, /m^2
-   real(rk)     :: tDEgesFiJv, tDMortFishDet
-   real(rk)     :: tDMortFish,tDMortFishBot,tDEgesPisc,tDMortPiscDet,tDMortPiscBot
-!  variables for exchange of Detritus N
+   real(rk)     :: tDEgesFiJv, tDMortFishTOM
+   real(rk)     :: tDMortFish,tDMortFishBot,tDEgesPisc,tDMortPiscTOM,tDMortPiscBot
+!  variables for exchange of organic matter N
 !  PCLake_Osis, /m^2
-   real(rk)     :: tNEgesFiJvDet,tNMortFishDet
-   real(rk)     :: tNEgesPiscDet,tNMortPiscDet
-!  variables for exchange of detritus P
+   real(rk)     :: tNEgesFiJvTOM,tNMortFishPOM
+   real(rk)     :: tNEgesPiscTOM,tNMortPiscTOM
+!  variables for exchange of organic matter P
 !  PCLake_Osis, /m^2
-   real(rk)     :: tPEgesFiJvDet,tPMortFishDet
-   real(rk)     :: tPEgesPiscDet,tPMortPiscDet
+   real(rk)     :: tPEgesFiJvTOM,tPMortFishTOM
+   real(rk)     :: tPEgesPiscTOM,tPMortPiscTOM
 !  benthivorous fish assimilation
    real(rk)     :: ukDIncrFiAd
 !  Fish manipulation, manipulate rate variable
@@ -377,7 +377,7 @@
    real(rk)     :: tNManFiAd,tNManFiJv
    real(rk)     :: tPManFiAd,tPManFiJv
    real(rk)     :: ChangedFiAd,ChangedFiJv,ChangedPisc
-   real(rk)     :: tDFishDetW, tNFishDetW, tPFishDetW
+   real(rk)     :: tDFishTOMW, tNFishTOMW, tPFishTOMW
    real(rk)     :: tDFishPOMW, tNFishPOMW, tPFishPOMW
    real(rk)     :: tDFishDOMW, tNFishDOMW, tPFishDOMW
 !  adult fish assimilation
@@ -386,7 +386,7 @@
    real(rk)     :: tDConsFiAd,tNConsFiAd,tPConsFiAd
    real(rk)     :: afNAssFiAd,tNAssFiAd,afPAssFiAd,tPAssFiAd
    real(rk)     :: tDEgesFiAd,tNEgesFiAd,tPEgesFiAd
-   real(rk)     :: tNEgesFiAdNH4,tPEgesFiAdPO4,tNEgesFiAdDet,tPEgesFiAdDet
+   real(rk)     :: tNEgesFiAdNH4,tPEgesFiAdPO4,tNEgesFiAdTOM,tPEgesFiAdTOM
 
 
 !  parameters before changed fish to nonlocal
@@ -944,21 +944,20 @@
 
 
 !-----------------------------------------------------------------------
-!  Update detrital DW in water
+!  Update organic matter DW in water
 !  for fish it has t-, unit in /m^2
 !-----------------------------------------------------------------------
 !  bent._fish_mortality
    tDMortFish = tDMortFiJv + tDMortFiAd
 !  part_of_died_fish_DW_fixed_in_bones_and_scales
    tDMortFishBot = self%fDBone * tDMortFish
-!  part_of_died_fish_DW_becoming_detritus
-   tDMortFishDet = tDMortFish - tDMortFishBot
+!  part_of_died_fish_DW_becoming_organic matters
+   tDMortFishTOM = tDMortFish - tDMortFishBot
 !  part_of_died_fish_DW_fixed_in_bones_AND_scales
    tDMortPiscBot = self%fDBone * tDMortPisc
-!  part_of_died_Pisc_DW_becoming_detritus
-   tDMortPiscDet = tDMortPisc - tDMortPiscBot
-!  total_fish_flux_of_DW_in_Detritus_in_lake_water
-
+!  part_of_died_Pisc_DW_becoming_organic matters
+   tDMortPiscTOM = tDMortPisc - tDMortPiscBot
+!  total_fish_flux_of_DW_in_organics_in_lake_water
 !  parameters before changed fish to nonlocal
 !   wDFishDetW = (tDEgesFiJv + tDMortFishDet + tDEgesPisc + tDMortPiscDet)/sDepthW
 !   wDFishPOMW = wDFishDetW * (1.0_rk - self%fFisDOMW)
@@ -966,23 +965,24 @@
 
 
 
-   tDFishDetW = tDEgesFiJv + tDEgesFiAd + tDMortFishDet + tDEgesPisc + tDMortPiscDet
-   tDFishPOMW = tDFishDetW * (1.0_rk - self%fFisDOMW)
-   tDFishDOMW = tDFishDetW * self%fFisDOMW
+
+   tDFishTOMW = tDEgesFiJv + tDEgesFiAd + tDMortFishTOM + tDEgesPisc + tDMortPiscTOM
+   tDFishPOMW = tDFishTOMW * (1.0_rk - self%fFisDOMW)
+   tDFishDOMW = tDFishTOMW * self%fFisDOMW
 !-----------------------------------------------------------------------
-!  Update detrital N in water
+!  Update organic N in water
 !-----------------------------------------------------------------------
-!  part_of_died_Pisc_N_becoming_detrital_N
-   tNMortPiscDet = tNMortPisc - tNMortPiscBot - tNMortPiscNH4
-!  detrital_N_egestion_of_Pisc
-   tNEgesPiscDet = tNEgesPisc - tNEgesPiscNH4
-!  part_of_died_fish_NW_becoming_detritus
-   tNMortFishDet = tNMortFish - tNMortFishBot - tNMortFishNH4
-!  detrital_N_egestion_of_adult_fish
-   tNEgesFiAdDet = tNEgesFiAd - tNEgesFiAdNH4
-!  detrital_N_egestion_of_young_fish
-   tNEgesFiJvDet = tNEgesFiJv - tNEgesFiJvNH4
-!  total_fish_flux_of_N_in_Detritus_in_lake_water
+!  part_of_died_Pisc_N_becoming_orgainc_N
+   tNMortPiscTOM = tNMortPisc - tNMortPiscBot - tNMortPiscNH4
+!  organic_N_egestion_of_Pisc
+   tNEgesPiscTOM = tNEgesPisc - tNEgesPiscNH4
+!  part_of_died_fish_NW_becoming_organics
+   tNMortFishPOM = tNMortFish - tNMortFishBot - tNMortFishNH4
+!  organic_N_egestion_of_adult_fish
+   tNEgesFiAdTOM = tNEgesFiAd - tNEgesFiAdNH4
+!  organic_N_egestion_of_young_fish
+   tNEgesFiJvTOM = tNEgesFiJv - tNEgesFiJvNH4
+!  total_fish_flux_of_N_in_orgainics_in_lake_water
 
 !  parameters before changed fish to nonlocal
 !   wNFishDetW = (tNEgesFiJvDet + tNMortFishDet + tNEgesPiscDet + tNMortPiscDet)/sDepthW
@@ -990,23 +990,23 @@
 !   wNFishDOMW = wNFishDetW * self%fFisDOMW
 
 
-   tNFishDetW = tNEgesFiJvDet + tNEgesFiAdDet + tNMortFishDet + tNEgesPiscDet + tNMortPiscDet
-   tNFishPOMW = tNFishDetW * (1.0_rk - self%fFisDOMW)
-   tNFishDOMW = tNFishDetW * self%fFisDOMW
+   tNFishTOMW = tNEgesFiJvTOM + tNEgesFiAdTOM + tNMortFishPOM + tNEgesPiscTOM + tNMortPiscTOM
+   tNFishPOMW = tNFishTOMW * (1.0_rk - self%fFisDOMW)
+   tNFishDOMW = tNFishTOMW * self%fFisDOMW
 !-----------------------------------------------------------------------
-!  Update detrital P in water
+!  Update orgainic P in water
 !-----------------------------------------------------------------------
-!  part_of_died_Pisc_P_becoming_detrital_P
-   tPMortPiscDet = tPMortPisc - tPMortPiscBot - tPMortPiscPO4
-!  detrital_P_egestion_of_Pisc
-   tPEgesPiscDet = tPEgesPisc - tPEgesPiscPO4
-!  part_of_died_fish_PW_becoming_detritus
-   tPMortFishDet = tPMortFish - tPMortFishBot - tPMortFishPO4
-!  detrital_P_egestion_of_young_fish
-   tPEgesFiJvDet = tPEgesFiJv - tPEgesFiJvPO4
-!  detrital_P_egestion_of_adult_fish
-   tPEgesFiAdDet = tPEgesFiAd - tPEgesFiAdPO4
-!  total_fish_flux_of_P_in_Detritus_in_lake_water
+!  part_of_died_Pisc_P_becoming_organic_P
+   tPMortPiscTOM = tPMortPisc - tPMortPiscBot - tPMortPiscPO4
+!  organic_P_egestion_of_Pisc
+   tPEgesPiscTOM = tPEgesPisc - tPEgesPiscPO4
+!  part_of_died_fish_PW_becoming_organics
+   tPMortFishTOM = tPMortFish - tPMortFishBot - tPMortFishPO4
+!  organic_P_egestion_of_young_fish
+   tPEgesFiJvTOM = tPEgesFiJv - tPEgesFiJvPO4
+!  organic_P_egestion_of_adult_fish
+   tPEgesFiAdTOM = tPEgesFiAd - tPEgesFiAdPO4
+!  total_fish_flux_of_P_in_organics_in_lake_water
 
 
 !  parameters before changed fish to nonlocal
@@ -1015,9 +1015,9 @@
 !   wPFishDOMW = wPFishDetW * self%fFisDOMW
 
 
-   tPFishDetW = tPEgesFiJvDet + tPEgesFiAdDet + tPMortFishDet + tPEgesPiscDet + tPMortPiscDet
-   tPFishPOMW = tPFishDetW * (1.0_rk - self%fFisDOMW)
-   tPFishDOMW = tPFishDetW * self%fFisDOMW
+   tPFishTOMW = tPEgesFiJvTOM + tPEgesFiAdTOM + tPMortFishTOM + tPEgesPiscTOM + tPMortPiscTOM
+   tPFishPOMW = tPFishTOMW * (1.0_rk - self%fFisDOMW)
+   tPFishDOMW = tPFishTOMW * self%fFisDOMW
 !-----------------------------------------------------------------------
 !  Update local state variables
 !-----------------------------------------------------------------------
@@ -1092,7 +1092,7 @@
    _SET_ODE_BEN_(self%id_ChangedFiAd,tDManFiAd)
 !  If zooplanktivorous manipulation tured on
    _SET_ODE_BEN_(self%id_ChangedFiJv,tDManFiJv)
-!  If Piscivorous fish manipulation tured ontPEgesFiAdDet
+!  If Piscivorous fish manipulation tured on
    _SET_ODE_BEN_(self%id_ChangedPisc,tDManPisc)
 ! Horizontal loop end
 !   _LOOP_END_

@@ -320,7 +320,6 @@
 
 !  retrieve current environmental dependencies
    _GET_(self%id_uTm,uTm)
-
 !  Nutrients ratio of partical organic matter
    rPDPOMW=sPPOMW/(sDPOMW+NearZero)
    rNDPOMW= sNPOMW/(sDPOMW+NearZero)

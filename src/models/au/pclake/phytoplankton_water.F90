@@ -403,7 +403,7 @@
    real(rk)   :: wPUptPhyt,wPExcrPhytW,wPMortPhytPO4W
    real(rk)   :: wSiExcrDiatW, wSiUptDiat
    real(rk)   :: wO2ProdPhyt,wO2RespPhytW,wO2UptNO3Phyt
-   real(rk)   :: wNMortPhytDetW,wPMortPhytDetW
+   real(rk)   :: wNMortPhytTOMW,wPMortPhytTOMW
    real(rk)   :: wSiMortDiatW
 !  Diatom_Si variables
    real(rk)    ::  oSiDiatW
@@ -642,7 +642,7 @@
    wNMortGrenW = self%kMortGrenW * sNGrenW
 !  mortality_Algae_in_water
    wNMortBlueW = self%kMortBlueW * sNBlueW
-!  total_algal_mortality_in_water,used in detritues exchange
+!  total_algal_mortality_in_water,used in organic exchange
    wDMortPhytW = wDMortDiatW + wDMortGrenW + wDMortBlueW
 !-----------------------------------------------------------------------
 !  Algae uptake_P
@@ -811,24 +811,24 @@
 !  O2_flux_by_water_algae
    wO2PrimW = wO2ProdPhyt - wO2RespPhytW + wO2UptNO3Phyt
 !-----------------------------------------------------------------------
-!  Detritus exchange with abiotic module
+!  Organics exchange with abiotic module
 !-----------------------------------------------------------------------
-!  Flux_to_water_detritus, par. and dis.
+!  Flux_to_water_organics, POM and DOM
    wDPrimPOMW = wDMortPhytW * (1.0_rk - self%fPrimDOMW)
    wDPrimDOMW = wDMortPhytW * self%fPrimDOMW
-!  detrital_N_flux_from_died_Algae
-   wNMortPhytDetW = wNMortPhytW - wNMortPhytNH4W
-!  Detritus_in_water
-   wNPrimPOMW = wNMortPhytDetW * (1.0_rk - self%fPrimDOMW)
-   wNPrimDOMW = wNMortPhytDetW * self%fPrimDOMW
-!  detrital_P_flux_from_died_Algae
-   wPMortPhytDetW = wPMortPhytW - wPMortPhytPO4W
-!  Detritus_in_water
-   wPPrimPOMW = wPMortPhytDetW * (1.0_rk - self%fPrimDOMW)
-   wPPrimDOMW = wPMortPhytDetW * self%fPrimDOMW
+!  organic_N_flux_from_died_Algae
+   wNMortPhytTOMW = wNMortPhytW - wNMortPhytNH4W
+!  organics_in_water
+   wNPrimPOMW = wNMortPhytTOMW * (1.0_rk - self%fPrimDOMW)
+   wNPrimDOMW = wNMortPhytTOMW * self%fPrimDOMW
+!  organics_P_flux_from_died_Algae
+   wPMortPhytTOMW = wPMortPhytW - wPMortPhytPO4W
+!  organics_in_water
+   wPPrimPOMW = wPMortPhytTOMW * (1.0_rk - self%fPrimDOMW)
+   wPPrimDOMW = wPMortPhytTOMW * self%fPrimDOMW
 !  Diatoms_mortality_in_water
    wSiMortDiatW = self%cSiDDiat * wDMortDiatW
-!  total_Si_flux_to_sed._detritus_in_PRIM_module
+!  total_Si_flux_to_sed._organics_in_PRIM_module
    wSiPrimPOMW = wSiMortDiatW * (1.0_rk - self%fPrimDOMW)
    wSiPrimDOMW = wSiMortDiatW * self%fPrimDOMW
 !-----------------------------------------------------------------------

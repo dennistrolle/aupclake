@@ -322,7 +322,7 @@
 !  sediment oxygen consumption variables for dissolved organics
    real(rk)                   :: tDMinOxyDOMS,tO2MinDOMS
 !  total sediment oxygen consumpution
-   real(rk)                   :: tO2MinDetS
+   real(rk)                   :: tO2MinTOMS
 !  total fluxes for sediment change
    real(rk)                   :: tDAbioPOMS,tNAbioPOMS,tPAbioPOMS,tSiAbioPOMS
 !  total fluxes for dissolved organics
@@ -462,8 +462,8 @@
    tDMinOxyDOMS=afOxySed*tDMinDOMS
 !  sediment_oxygen_demand
 !  The original equation
-!   tO2MinDetS=molO2molC*self%cCPerDW*tDMinOxyDetS
-   tO2MinDetS=molO2molC*self%cCPerDW*(tDMinOxyDOMS+tDMinOxyDOMS)
+!   tO2MinTOMS=molO2molC*self%cCPerDW*tDMinOxyDetS
+   tO2MinTOMS=molO2molC*self%cCPerDW*(tDMinOxyDOMS+tDMinOxyDOMS)
 !-----------------------------------------------------------------------
 !  denitrification flux
 !-----------------------------------------------------------------------
@@ -563,7 +563,7 @@
    _SET_BOTTOM_EXCHANGE_(self%id_diffNH4, tNdifNH4)
    _SET_BOTTOM_EXCHANGE_(self%id_diffNO3,tNdifNO3)
    _SET_BOTTOM_EXCHANGE_(self%id_diffPO4,tPdifPO4)
-   _SET_BOTTOM_EXCHANGE_(self%id_O2ConsumpSed,-tO2MinDetS - tO2NitrS)
+   _SET_BOTTOM_EXCHANGE_(self%id_O2ConsumpSed,-tO2MinTOMS - tO2NitrS)
 !-----------------------------------------------------------------------
 !  Update external state variables for dissolved organics
 !-----------------------------------------------------------------------
@@ -587,7 +587,7 @@
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tPdifPO4,tPdifPO4/dz*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNdifNH4,tNdifNH4/dz*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNdifNO3,tNdifNO3/dz*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDAbioO2S,(-tO2MinDetS - tO2NitrS)*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDAbioO2S,(-tO2MinTOMS - tO2NitrS)*secs_pr_day)
 #ifdef _DEVELOPMENT_
 !  output diagnostic variables for modular fluxes
 !  total fluxes for local sediment state variables

@@ -106,7 +106,7 @@
    call self%get_parameter(self%cPrefDiat,     'cPrefDiat',     '[-]',       'selection factor for diatoms',                                                   default=0.75_rk)
    call self%get_parameter(self%cPrefGren,     'cPrefGren',     '[-]',       'selection factor for greens',                                                    default=0.75_rk)
    call self%get_parameter(self%cPrefBlue,     'cPrefBlue',     '[-]',       'selection factor for blue-greens',                                           default=0.125_rk)
-   call self%get_parameter(self%cPrefPOM,      'cPrefPOM',      '[-]',       'selection factor for detritus',                                                  default=0.25_rk)
+   call self%get_parameter(self%cPrefPOM,      'cPrefPOM',      '[-]',       'selection factor for organics',                                                  default=0.25_rk)
    call self%get_parameter(self%hFilt,         'hFilt',         'gDW m-3',   'half-sat. food concentration for filtering',                                             default=1.0_rk)
    call self%get_parameter(self%fDAssZoo,      'fDAssZoo',      '[-]',       'dry weight assimilation efficiency of herb. zooplankton',                                default=0.35_rk)
    call self%get_parameter(self%cFiltMax,      'cFiltMax',      'ltr/mgDW/d','maximum filtering rate',                                                         default=4.5_rk,scale_factor=1.0_rk/secs_pr_day)
@@ -250,17 +250,17 @@
 !  variables for exchange of PO4
 !  PCLake_Osis, /m^2
    real(rk)     :: wPZooPO4W,wPEgesZooPO4,wPEgesZoo,wPMortZooPO4
-!  variables for exchange of Detritus DW
+!  variables for exchange of organic DW
    real(rk)     :: wDZooPOMW,wDEgesZoo
-!  variables for exchange of Detritus N
-   real(rk)     :: wNZooPOMW,wNEgesZooDet,wNMortZooDet
-!  variables for exchange of detritus P
-   real(rk)     :: wPZooPOMW,wPEgesZooDet,wPMortZooDet
-!  variables for exchange of detritus Si
+!  variables for exchange of organic N
+   real(rk)     :: wNZooPOMW,wNEgesZooTOM,wNMortZooTOM
+!  variables for exchange of organic P
+   real(rk)     :: wPZooPOMW,wPEgesZooTOM,wPMortZooTOM
+!  variables for exchange of organic Si
    real(rk)     :: wSiZooPOMW,wSiConsDiatZoo
 !  variables for exchange of dissolved organics
-   real(rk)     :: wDZooDetW,wNZooDetW,wPZooDetW
-   real(rk)     :: wSiZooDetW,wDZooDOMW,wNZooDOMW
+   real(rk)     :: wDZooTOMW,wNZooTOMW,wPZooTOMW
+   real(rk)     :: wSiZooTOMW,wDZooDOMW,wNZooDOMW
    real(rk)     :: wPZooDOMW,wSiZooDOMW
 !  variables for exchange of diatoms
    real(rk)     :: wDZooDiatW,wNZooDiatW,wPZooDiatW
@@ -412,9 +412,9 @@
    wNConsBlueZoo = rNDBlueW*wDConsBlueZoo
 !  total_N_phytoplankton_consumption_by_zoopl.
    wNConsPhytZoo = wNConsDiatZoo + wNConsGrenZoo + wNConsBlueZoo
-!  DW_detritus_consumption_by_zooplankton
+!  DW_organics_consumption_by_zooplankton
    wDConsPOMZoo = self%cPrefPOM*sDPOMW / oDFoodZoo * wDConsZoo
-!  consumption_of_detrital_N
+!  consumption_of_organic_N
    wNConsPOMZoo = rNDPOMW*wDConsPOMZoo
 !  total_N_consumption
    wNConsZoo = wNConsPhytZoo + wNConsPOMZoo
@@ -438,7 +438,7 @@
    wPConsBlueZoo = rPDBlueW * wDConsBlueZoo
 !  total_P_phytoplankton_consumption_by_zoopl.
    wPConsPhytZoo = wPConsDiatZoo + wPConsGrenZoo + wPConsBlueZoo
-!  consumption_of_detrital_P
+!  consumption_of_organic_P
    wPConsPOMZoo = rPDPOMW * wDConsPOMZoo
 !  total_P_consumption
    wPConsZoo = wPConsPhytZoo + wPConsPOMZoo
@@ -511,40 +511,40 @@
 !  total_Zoo_flux_of_P_in_SRP_in_water_in_lake_water
   wPZooPO4W = wPExcrZoo + wPEgesZooPO4 + wPMortZooPO4
 !-----------------------------------------------------------------------
-!  Update detrital DW in water
+!  Update organic DW in water
 !-----------------------------------------------------------------------
-!  total_Zoo_flux_of_DW_in_Detritus_in_lake_wate
-   wDZooDetW = - wDConsPOMZoo + wDEgesZoo + wDMortZoo
-   wDZooPOMW = wDZooDetW * (1.0_rk - self%fZooDOMW)
-   wDZooDOMW = wDZooDetW * self%fZooDOMW
+!  total_Zoo_flux_of_DW_in_organics_in_lake_wate
+   wDZooTOMW = - wDConsPOMZoo + wDEgesZoo + wDMortZoo
+   wDZooPOMW = wDZooTOMW * (1.0_rk - self%fZooDOMW)
+   wDZooDOMW = wDZooTOMW * self%fZooDOMW
 !-----------------------------------------------------------------------
-!  Update detrital N in water
+!  Update organic N in water
 !-----------------------------------------------------------------------
-!  detrital_N_mortality
-   wNMortZooDet = wNMortZoo - wNMortZooNH4
-!  detrital_N_egestion
-   wNEgesZooDet = wNEgesZoo - wNEgesZooNH4
-!  total_Zoo_flux_of_N_in_Detritus_in_lake_water
-   wNZooDetW = - wNConsPOMZoo + wNEgesZooDet + wNMortZooDet
-   wNZooPOMW = wNZooDetW * (1.0_rk - self%fZooDOMW)
-   wNZooDOMW = wNZooDetW * self%fZooDOMW
+!  organic_N_mortality
+   wNMortZooTOM = wNMortZoo - wNMortZooNH4
+!  organic_N_egestion
+   wNEgesZooTOM = wNEgesZoo - wNEgesZooNH4
+!  total_Zoo_flux_of_N_in_organics_in_lake_water
+   wNZooTOMW = - wNConsPOMZoo + wNEgesZooTOM + wNMortZooTOM
+   wNZooPOMW = wNZooTOMW * (1.0_rk - self%fZooDOMW)
+   wNZooDOMW = wNZooTOMW * self%fZooDOMW
 !-----------------------------------------------------------------------
-!  Update detrital P in water
+!  Update organic P in water
 !-----------------------------------------------------------------------
-!  detrital_P_mortality
-   wPMortZooDet = wPMortZoo - wPMortZooPO4
-!  detrital_P_egestion
-   wPEgesZooDet = wPEgesZoo - wPEgesZooPO4
-!  total_Zoo_flux_of_P_in_Detritus_in_lake_water
-   wPZooDetW = - wPConsPOMZoo + wPEgesZooDet + wPMortZooDet
-   wPZooPOMW = wPZooDetW * (1.0_rk - self%fZooDOMW)
-   wPZooDOMW = wPZooDetW * self%fZooDOMW
+!  organic_P_mortality
+   wPMortZooTOM = wPMortZoo - wPMortZooPO4
+!  organic_P_egestion
+   wPEgesZooTOM = wPEgesZoo - wPEgesZooPO4
+!  total_Zoo_flux_of_P_in_organics_in_lake_water
+   wPZooTOMW = - wPConsPOMZoo + wPEgesZooTOM + wPMortZooTOM
+   wPZooPOMW = wPZooTOMW * (1.0_rk - self%fZooDOMW)
+   wPZooDOMW = wPZooTOMW * self%fZooDOMW
 !-----------------------------------------------------------------------
-!  Update detrital Si in water
+!  Update organic Si in water
 !-----------------------------------------------------------------------
 !  consumption_of_diatoms
    wSiConsDiatZoo = self%cSiDDiat * wDConsDiatZoo
-!  total_Zoo_flux_of_silica_in_lake_water_detritus
+!  total_Zoo_flux_of_silica_in_lake_water_organics
    wSiZooPOMW = wSiConsDiatZoo * (1.0_rk - self%fZooDOMW)
    wSiZooDOMW = wSiConsDiatZoo * self%fZooDOMW   
 !-----------------------------------------------------------------------

@@ -30,7 +30,7 @@
    type (type_horizontal_diagnostic_variable_id)       :: id_tPBenGrenS,id_tDBenBlueS,id_tNBenBlueS
    type (type_horizontal_diagnostic_variable_id)       :: id_tPBenBlueS,id_tDAssFiAd,id_tNAssFiAd
    type (type_horizontal_diagnostic_variable_id)       :: id_tPAssFiAd,id_tNBenNH4W,id_tPBenPO4W
-   type (type_horizontal_diagnostic_variable_id)       :: id_tDBenDetW,id_tNBenDetW,id_tPBenDetW
+   type (type_horizontal_diagnostic_variable_id)       :: id_tDBenPOMW,id_tNBenPOMW,id_tPBenPOMW
 #endif
 !  state dependencies identifiers
    type (type_bottom_state_variable_id)            :: id_DfoodDiatS,id_DfoodGrenS,id_DfoodBlueS,id_DPOMpoolS
@@ -168,9 +168,9 @@
    call self%register_diagnostic_variable(self%id_tPAssFiAd,     'tPAssFiAd',     'g m-2',    'zoobenthos_PFiAd_change',  output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_tNBenNH4W,     'tNBenNH4W',     'g m-2',    'zoobenthos_NH4W_change',   output=output_instantaneous)
    call self%register_diagnostic_variable(self%id_tPBenPO4W,     'tPBenPO4W',     'g m-2',    'zoobenthos_PO4W_change',   output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_tDBenDetW,     'tDBenDetW',     'g m-2',    'zoobenthos_DDetW_change',  output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_tNBenDetW,     'tNBenDetW',     'g m-2',    'zoobenthos_NDetw_change',  output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_tPBenDetW,     'tPBenDetW',     'g m-2',    'zoobenthos_PDetw_change',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_tDBenPOMW,     'tDBenPOMW',     'g m-2',    'zoobenthos_DPOMW_change',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_tNBenPOMW,     'tNBenPOMW',     'g m-2',    'zoobenthos_NPOMw_change',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_tPBenPOMW,     'tPBenPOMW',     'g m-2',    'zoobenthos_PPOMw_change',  output=output_instantaneous)
 #endif
 !  Register contribution of state to global aggregate variables
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,self%id_sNBent)
@@ -185,17 +185,17 @@
    call self%register_state_dependency(self%id_PfoodDiatS,   'diatom_as_food_P',                 'g m-2', 'diatom as food P')
    call self%register_state_dependency(self%id_PfoodGrenS,   'green_as_food_P',                  'g m-2', 'green as food P')
    call self%register_state_dependency(self%id_PfoodBlueS,   'blue_as_food_P',                   'g m-2', 'blue as food P')
-   call self%register_state_dependency(self%id_DPOMpoolS,    'POM_DW_pool_sediment',        'g m-2', 'detritus DW pool in sediment')
-   call self%register_state_dependency(self%id_PPOMpoolS,    'POM_P_pool_sediment',         'g m-2', 'detritus P pool in sediment')
-   call self%register_state_dependency(self%id_NPOMpoolS,    'POM_N_pool_sediment',         'g m-2', 'detritus N pool in sediment')
-   call self%register_state_dependency(self%id_SiPOMpoolS,   'POM_Si_pool_sediment',        'g m-2', 'detritus Si pool sediment')
+   call self%register_state_dependency(self%id_DPOMpoolS,    'POM_DW_pool_sediment',        'g m-2', 'partical organics DW pool in sediment')
+   call self%register_state_dependency(self%id_PPOMpoolS,    'POM_P_pool_sediment',         'g m-2', 'partical organics P pool in sediment')
+   call self%register_state_dependency(self%id_NPOMpoolS,    'POM_N_pool_sediment',         'g m-2', 'partical organics N pool in sediment')
+   call self%register_state_dependency(self%id_SiPOMpoolS,   'POM_Si_pool_sediment',        'g m-2', 'partical organics Si pool sediment')
    call self%register_state_dependency(self%id_NH4poolS,     'NH4_pool_sediment',                'g m-2', 'NH4 pool in sediment')
    call self%register_state_dependency(self%id_NO3poolS,     'NO3_pool_sediment',                'g m-2', 'NO3 pool in sediment')
    call self%register_state_dependency(self%id_PO4poolS,     'PO4_pool_sediment',                'g m-2', 'PO4 pool in sediment')
-   call self%register_state_dependency(self%id_DDOMpoolS,    'DOM_DW_pool_sediment',   'g m-2', 'dissolved detritus DW in sediment')
-   call self%register_state_dependency(self%id_NDOMpoolS,    'DOM_N_pool_sediment',    'g m-2', 'dissolved detritus N in sediment')
-   call self%register_state_dependency(self%id_PDOMpoolS,    'DOM_P_pool_sediment',    'g m-2', 'dissolved detritus P in sediment')
-   call self%register_state_dependency(self%id_SiDOMpoolS,   'DOM_Si_pool_sediment',   'g m-2', 'dissolved detritus Si in sediment')
+   call self%register_state_dependency(self%id_DDOMpoolS,    'DOM_DW_pool_sediment',   'g m-2', 'dissolved organics DW in sediment')
+   call self%register_state_dependency(self%id_NDOMpoolS,    'DOM_N_pool_sediment',    'g m-2', 'dissolved organics N in sediment')
+   call self%register_state_dependency(self%id_PDOMpoolS,    'DOM_P_pool_sediment',    'g m-2', 'dissolved organics P in sediment')
+   call self%register_state_dependency(self%id_SiDOMpoolS,   'DOM_Si_pool_sediment',   'g m-2', 'dissolved organics Si in sediment')
 !  parameters before changed fish to nonlocal
 !   call self%register_state_dependency(self%id_DAdFish,      'adult_fish_biomass',               'g m-3', 'adult fish biomass')
 !   call self%register_state_dependency(self%id_NAdFish,      'adult_fish_nitrogen',              'g m-3', 'adult fish nitrogen')
@@ -267,11 +267,11 @@
    real(rk)          :: tNBenNO3S
 !  variables for exchange of PO4S
    real(rk)          :: tPBenPO4S,tPEgesBentPO4,tPEgesBent,tPMortBentPO4
-!  variables for exchange for detritus
-   real(rk)          :: tDBenPOMS,tDEgesBent,tNBenPOMS,tNEgesBentDet
-   real(rk)          :: tNMortBentDet,tPBenPOMS,tPEgesBentDet,tPMortBentDet
+!  variables for exchange for organics
+   real(rk)          :: tDBenPOMS,tDEgesBent,tNBenPOMS,tNEgesBentTOM
+   real(rk)          :: tNMortBentTOM,tPBenPOMS,tPEgesBentTOM,tPMortBentTOM
    real(rk)          :: tSiBenPOMS,tSiConsDiatBent
-   real(rk)          :: tDBenDetS,tNBenDetS,tPBenDetS,tSiBenDetS
+   real(rk)          :: tDBenTOMS,tNBenTOMS,tPBenTOMS,tSiBenTOMS
    real(rk)          :: tDBenDOMS,tNBenDOMS,tPBenDOMS,tSiBenDOMS
 !  variables for exchange for diatom
    real(rk)          :: tDBenDiatS,tNBenDiatS,tPBenDiatS
@@ -426,7 +426,7 @@
    tDAssBent = aDSatBent *(self%kDAssBent * uFunTmBent * sDBent - tDEnvBent)
 !  consumption_of_zoobenthos
    tDConsBent = tDAssBent / self%fDAssBent
-!  detritus_consumption_by_zoobenthos
+!  organic_consumption_by_zoobenthos
    tDConsPOMBent = sDPOMS / aDFoodBent * tDConsBent
 !  diatoms_consumption_by_zoobenthos
    tDConsDiatBent = sDDiatS / aDFoodBent * tDConsBent
@@ -441,7 +441,7 @@
    aPFoodBent = sPPOMS + aPPhytS
 !  average_P/D_ratio_of_zoobenthos_food
    rPDFoodBent = aPFoodBent /(aDFoodBent+NearZero)
-!  detrital_P_consumption_by_zoobenthos
+!  organic_P_consumption_by_zoobenthos
    tPConsPOMBent = rPDPOMS * tDConsPOMBent
 !  diatom_P_consumption_by_zoobenthos
    tPConsDiatBent = rPDDiatS * tDConsDiatBent
@@ -464,7 +464,7 @@
    aNFoodBent = sNPOMS + aNPhytS
 !  average_N/D_ratio_of_zoobenthos_food
    rNDFoodBent = aNFoodBent /(aDFoodBent+NearZero)
-!  detrital_N_consumption_by_zoobenthos
+!  organic_N_consumption_by_zoobenthos
    tNConsPOMBent = rNDPOMS * tDConsPOMBent
 !  diatom_N_consumption_by_zoobenthos
    tNConsDiatBent = rNDDiatS * tDConsDiatBent
@@ -602,31 +602,31 @@
 !  total_flux_of_P_in_Pore_water_P_in_lake_sediment
    tPBenPO4S = tPExcrBent + tPEgesBentPO4 + tPMortBentPO4
 !-----------------------------------------------------------------------
-!  Update detritus in sediment(DW,N,P)
+!  Update organics in sediment(DW,N,P)
 !-----------------------------------------------------------------------
-!  total_flux_of_DW_in_Sediment_detritus_in_lake
-   tDBenDetS = - tDConsPOMBent + tDEgesBent + tDMortBent
-   tDBenPOMS = tDBenDetS * (1.0_rk -self%fBenDOMS)
-   tDBenDOMS = tDBenDetS * self%fBenDOMS
-!  part_of_died_zoobenthos_N_becoming_detrital_N
-   tNMortBentDet = (1.0_rk-self%fDissMortBent)*tNMortBent
+!  total_flux_of_DW_in_Sediment_organics_in_lake
+   tDBenTOMS = - tDConsPOMBent + tDEgesBent + tDMortBent
+   tDBenPOMS = tDBenTOMS * (1.0_rk -self%fBenDOMS)
+   tDBenDOMS = tDBenTOMS * self%fBenDOMS
+!  part_of_died_zoobenthos_N_becoming_organic_N
+   tNMortBentTOM = (1.0_rk-self%fDissMortBent)*tNMortBent
 !  detrital_N_egestion_of_zoobenthos
-   tNEgesBentDet = (1.0_rk - self%fDissEgesBent) * tNEgesBent
+   tNEgesBentTOM = (1.0_rk - self%fDissEgesBent) * tNEgesBent
 !  total_flux_of_N_in_Sediment_N_in_lake_sediment
-   tNBenDetS = - tNConsPOMBent + tNEgesBentDet + tNMortBentDet
-   tNBenPOMS = tNBenDetS * (1.0_rk -self%fBenDOMS)
-   tNBenDOMS = tNBenDetS * self%fBenDOMS
-!  part_of_died_zoobenthos_P_becoming_detrital_P
-   tPMortBentDet = (1.0_rk-self%fDissMortBent)*tPMortBent
+   tNBenTOMS = - tNConsPOMBent + tNEgesBentTOM + tNMortBentTOM
+   tNBenPOMS = tNBenTOMS * (1.0_rk -self%fBenDOMS)
+   tNBenDOMS = tNBenTOMS * self%fBenDOMS
+!  part_of_died_zoobenthos_P_becoming_organic_P
+   tPMortBentTOM = (1.0_rk-self%fDissMortBent)*tPMortBent
 !  detrital_P_egestion_of_zoobenthos
-   tPEgesBentDet = (1.0_rk - self%fDissEgesBent) * tPEgesBent
+   tPEgesBentTOM = (1.0_rk - self%fDissEgesBent) * tPEgesBent
 !  total_flux_of_P_in_Sediment_P_in_lake
-   tPBenDetS = - tPConsPOMBent + tPEgesBentDet + tPMortBentDet
-   tPBenPOMS = tPBenDetS * (1.0_rk -self%fBenDOMS)
-   tPBenDOMS = tPBenDetS * self%fBenDOMS
+   tPBenTOMS = - tPConsPOMBent + tPEgesBentTOM + tPMortBentTOM
+   tPBenPOMS = tPBenTOMS * (1.0_rk -self%fBenDOMS)
+   tPBenDOMS = tPBenTOMS * self%fBenDOMS
 !  diatom_consumption_by_zoobenthos
    tSiConsDiatBent = self%cSiDDiat * tDConsDiatBent
-!  total_flux_of_silica_in_sediment_detritus
+!  total_flux_of_silica_in_sediment_organics
    tSiBenPOMS = tSiConsDiatBent * (1.0_rk - self%fBenDOMS)
    tSiBenDOMS = tSiConsDiatBent * self%fBenDOMS
 !-----------------------------------------------------------------------
@@ -737,9 +737,9 @@
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tPAssFiAd,     tPAssFiAd/dz*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNBenNH4W,     tNEgesFiAdNH4/dz*secs_pr_day)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tPBenPO4W,     tPEgesFiAdPO4/dz*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDBenDetW,     tDEgesFiAd/dz*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNBenDetW,     tNEgesFiAdDet/dz*secs_pr_day)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tPBenDetW,     tPEgesFiAdDet/dz*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tDBenPOMW,     tDEgesFiAd/dz*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tNBenPOMW,     tNEgesFiAdPOM/dz*secs_pr_day)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tPBenPOMW,     tPEgesFiAdPOM/dz*secs_pr_day)
 #endif
 !  Spatial loop end
    _FABM_HORIZONTAL_LOOP_END_
